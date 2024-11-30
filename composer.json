@@ -1,0 +1,54 @@
+{
+  "name": "santosdave/verteil-wrapper",
+  "description": "Laravel package for Verteil NDC API integration",
+  "type": "library",
+  "keywords": [
+    "santosdave",
+    "verteil-wrapper",
+    "verteil",
+    "ndc",
+    "api",
+    "travel"
+  ],
+  "require": {
+    "php": "^8.1",
+    "guzzlehttp/guzzle": "^7.0",
+    "illuminate/support": "^8.0|^9.0|^10.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5|^10.0",
+    "orchestra/testbench": "^6.0|^7.0|^8.0"
+  },
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Santosdave\\VerteilWrapper\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Santosdave\\VerteilWrapper\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit"
+  },
+  "authors": [
+    {
+      "name": "santosdave",
+      "email": "51959957+santosdave@users.noreply.github.com"
+    }
+  ],
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Santosdave\\VerteilWrapper\\VerteilProvider"
+      ]
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
