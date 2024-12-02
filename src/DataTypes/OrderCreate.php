@@ -39,9 +39,44 @@ class OrderCreate
         ];
     }
 
-    public static function createParty(array $params): array
+    protected static function createParty(array $params): ?array
     {
-        return [];
+        if (empty($params)) {
+            return null;
+        }
+
+        return [
+            'Sender' => [
+                'CorporateSender' => [
+                    'CorporateCode' => $params['corporateCode'] ?? null,
+                    'Name' => $params['corporateName'] ?? null,
+                    'Department' => isset($params['department']) ? [
+                        'Name' => $params['department']
+                    ] : null,
+                    'ContactInfo' => isset($params['contact']) ? [
+                        'EmailContact' => [
+                            'Address' => ['value' => $params['contact']['email']]
+                        ],
+                        'PhoneContact' => [
+                            'Number' => [[
+                                'CountryCode' => $params['contact']['phoneCountryCode'],
+                                'value' => $params['contact']['phoneNumber']
+                            ]]
+                        ]
+                    ] : null
+                ],
+                'TravelAgencySender' => isset($params['agency']) ? [
+                    'IATA' => [
+                        'value' => $params['agency']['iataNumber']
+                    ],
+                    'AgencyID' => [
+                        'value' => $params['agency']['agencyId']
+                    ],
+                    'Name' => $params['agency']['name'],
+                    'PseudoCity' => $params['agency']['pseudoCity'] ?? null
+                ] : null
+            ]
+        ];
     }
 
     protected static function createOffers(array $offers): array
@@ -128,7 +163,118 @@ class OrderCreate
 
     protected static function createDataLists(array $dataLists): array
     {
-        return [];
+        $result = [];
+
+        // Create FareList if provided
+        if (isset($dataLists['fares'])) {
+            $result['FareList'] = [
+                'FareGroup' => array_map(function ($fare) {
+                    return [
+                        'ListKey' => $fare['listKey'],
+                        'FareBasisCode' => [
+                            'Code' => $fare['code']
+                        ],
+                        'Fare' => isset($fare['fareCode']) ? [
+                            'FareCode' => ['Code' => $fare['fareCode']]
+                        ] : null,
+                        'FareRule' => isset($fare['rules']) ? [
+                            'Rules' => array_map(function ($rule) {
+                                return [
+                                    'RuleCode' => $rule['code'],
+                                    'Description' => $rule['description']
+                                ];
+                            }, $fare['rules'])
+                        ] : null
+                    ];
+                }, $dataLists['fares'])
+            ];
+        }
+
+        // Create FlightSegmentList if provided
+        if (isset($dataLists['segments'])) {
+            $result['FlightSegmentList'] = [
+                'FlightSegment' => array_map(function ($segment) {
+                    return [
+                        'SegmentKey' => $segment['segmentKey'],
+                        'Departure' => [
+                            'AirportCode' => ['value' => $segment['departureAirport']],
+                            'Date' => $segment['departureDate'],
+                            'Time' => $segment['departureTime'],
+                            'Terminal' => isset($segment['departureTerminal']) ? [
+                                'Name' => $segment['departureTerminal']
+                            ] : null
+                        ],
+                        'Arrival' => [
+                            'AirportCode' => ['value' => $segment['arrivalAirport']],
+                            'Date' => $segment['arrivalDate'],
+                            'Time' => $segment['arrivalTime'],
+                            'Terminal' => isset($segment['arrivalTerminal']) ? [
+                                'Name' => $segment['arrivalTerminal']
+                            ] : null
+                        ],
+                        'MarketingCarrier' => [
+                            'AirlineID' => ['value' => $segment['airlineCode']],
+                            'FlightNumber' => ['value' => $segment['flightNumber']]
+                        ],
+                        'OperatingCarrier' => isset($segment['operatingCarrier']) ? [
+                            'AirlineID' => ['value' => $segment['operatingCarrier']['code']],
+                            'FlightNumber' => ['value' => $segment['operatingCarrier']['flightNumber']]
+                        ] : null,
+                        'Equipment' => isset($segment['aircraft']) ? [
+                            'AircraftCode' => $segment['aircraft']
+                        ] : null,
+                        'ClassOfService' => isset($segment['classOfService']) ? [
+                            'Code' => ['value' => $segment['classOfService']]
+                        ] : null
+                    ];
+                }, $dataLists['segments'])
+            ];
+        }
+
+        // Create ServiceList if provided
+        if (isset($dataLists['services'])) {
+            $result['ServiceList'] = [
+                'Service' => array_map(function ($service) {
+                    return [
+                        'ServiceID' => ['value' => $service['serviceId']],
+                        'Name' => $service['name'],
+                        'Descriptions' => isset($service['description']) ? [
+                            'Description' => [['Text' => $service['description']]]
+                        ] : null,
+                        'ServiceCode' => ['Code' => $service['code']],
+                        'Price' => isset($service['price']) ? [
+                            'Total' => [
+                                'value' => $service['price']['amount'],
+                                'Code' => $service['price']['currency']
+                            ]
+                        ] : null
+                    ];
+                }, $dataLists['services'])
+            ];
+        }
+
+        // Create BaggageAllowanceList if provided
+        if (isset($dataLists['baggage'])) {
+            $result['BaggageAllowanceList'] = [
+                'BaggageAllowance' => array_map(function ($baggage) {
+                    return [
+                        'BaggageAllowanceID' => ['value' => $baggage['id']],
+                        'TypeCode' => $baggage['type'],
+                        'WeightAllowance' => isset($baggage['weight']) ? [
+                            'MaximumWeight' => [
+                                'Value' => $baggage['weight']['value'],
+                                'UOM' => $baggage['weight']['unit']
+                            ]
+                        ] : null,
+                        'PieceAllowance' => isset($baggage['pieces']) ? [
+                            'TotalQuantity' => $baggage['pieces']
+                        ] : null
+                    ];
+                }, $dataLists['baggage'])
+            ];
+        }
+
+        return $result;
     }
 
     protected static function createPassengers(array $passengers): array

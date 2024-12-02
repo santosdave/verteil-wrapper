@@ -96,6 +96,19 @@ $response = Verteil::airShopping($request);
 use Santosdave\VerteilWrapper\DataTypes\FlightPrice;
 use Santosdave\VerteilWrapper\DataTypes\VerteilRequestBuilder as Builder;
 
+// Create flight details using named parameters
+$flight = Builder::createFlightType([
+    'departureAirport' => 'LHR',
+    'arrivalAirport' => 'JFK',
+    'departureDate' => '2024-12-01',
+    'departureTime' => '09:00',
+    'airlineCode' => 'BA',
+    'flightNumber' => '123',
+    'arrivalDate' => '2024-12-01',
+    'arrivalTime' => '12:00',
+    'classOfService' => 'Y'
+]);
+
 $request = FlightPrice::create([
     'dataLists' => [
         'fares' => [
@@ -109,19 +122,7 @@ $request = FlightPrice::create([
     'query' => [
         'originDestinations' => [
             [
-                'flights' => [
-                    Builder::createFlightType(
-                        'LHR',
-                        'JFK',
-                        '2024-12-01',
-                        '09:00',
-                        'BA',
-                        '123',
-                        '2024-12-01',
-                        '12:00',
-                        'Y'
-                    )
-                ]
+                'flights' => [$flight]
             ]
         ],
         'offers' => [
@@ -147,6 +148,38 @@ $response = Verteil::flightPrice($request);
 use Santosdave\VerteilWrapper\DataTypes\OrderCreate;
 use Santosdave\VerteilWrapper\DataTypes\VerteilRequestBuilder as Builder;
 
+// Create passenger details using named parameters
+$name = Builder::createNameType([
+    'given' => 'John',
+    'surname' => 'Doe',
+    'title' => 'Mr'
+]);
+
+$contacts = Builder::createContactType([
+    'phoneNumber' => '1234567890',
+    'phoneCountryCode' => '44',
+    'email' => 'john.doe@example.com',
+    'street' => '123 Main St',
+    'city' => 'London',
+    'postalCode' => '12345',
+    'countryCode' => 'GB'
+]);
+
+$document = Builder::createPassengerDocumentType([
+    'documentNumber' => 'AB123456',
+    'issuingCountry' => 'GB',
+    'type' => 'PT',
+    'expiryDate' => '2030-01-01'
+]);
+
+$payment = Builder::createPaymentCardType([
+    'cardNumber' => '4111111111111111',
+    'cvv' => '123',
+    'expiryDate' => '1225',
+    'holderName' => 'John Doe',
+    'brand' => 'VI'
+]);
+
 $request = OrderCreate::create([
     'query' => [
         'owner' => 'BA',
@@ -156,34 +189,13 @@ $request = OrderCreate::create([
                 'objectKey' => 'T1',
                 'gender' => 'Male',
                 'passengerType' => 'ADT',
-                'name' => Builder::createNameType('John', 'Doe', 'Mr'),
-                'contacts' => Builder::createContactType(
-                    '1234567890',
-                    'john.doe@example.com',
-                    '123 Main St',
-                    'London',
-                    '12345',
-                    'GB',
-                    '44'
-                ),
-                'document' => Builder::createPassengerDocumentType(
-                    'AB123456',
-                    'GB',
-                    'PT',
-                    '2030-01-01'
-                )
+                'name' => $name,
+                'contacts' => $contacts,
+                'document' => $document
             ]
         ]
     ],
-    'payments' => [
-        Builder::createPaymentCardType(
-            '4111111111111111',
-            '123',
-            '1225',
-            'John Doe',
-            'VI'
-        )
-    ]
+    'payments' => [$payment]
 ]);
 
 $response = Verteil::createOrder($request);
@@ -228,6 +240,16 @@ $response = Verteil::cancelOrder($cancelRequest);
 use Santosdave\VerteilWrapper\DataTypes\SeatAvailability;
 use Santosdave\VerteilWrapper\DataTypes\ServiceList;
 
+// Create flight details for service list
+$flight = Builder::createFlightType([
+    'departureAirport' => 'LHR',
+    'arrivalAirport' => 'JFK',
+    'departureDate' => '2024-12-01',
+    'departureTime' => '09:00',
+    'airlineCode' => 'BA',
+    'flightNumber' => '123'
+]);
+
 // Check seat availability
 $seatRequest = SeatAvailability::create('pre', [
     'query' => [
@@ -259,16 +281,7 @@ $serviceRequest = ServiceList::create('pre', [
     'query' => [
         'originDestinations' => [
             [
-                'flights' => [
-                    Builder::createFlightType(
-                        'LHR',
-                        'JFK',
-                        '2024-12-01',
-                        '09:00',
-                        'BA',
-                        '123'
-                    )
-                ]
+                'flights' => [$flight]
             ]
         ]
     ],
@@ -282,6 +295,58 @@ $serviceRequest = ServiceList::create('pre', [
 $services = Verteil::getServiceList($serviceRequest);
 ```
 
+### Order Change Example
+
+```php
+use Santosdave\VerteilWrapper\DataTypes\OrderChange;
+
+$payment = Builder::createPaymentCardType([
+    'cardNumber' => '4111111111111111',
+    'cvv' => '123',
+    'expiryDate' => '1225',
+    'holderName' => 'John Doe',
+    'brand' => 'VI'
+]);
+
+// Create order change request
+$orderChangeParams = [
+    'orderId' => [
+        'owner' => 'BA',
+        'orderId' => 'ABC123'
+    ],
+    'changes' => [
+        [
+            'type' => 'FLIGHT_CHANGE',
+            'segments' => [
+                [
+                    'origin' => 'LHR',
+                    'destination' => 'JFK',
+                    'departureDate' => '2024-12-01',
+                    'departureTime' => '09:00',
+                    'airlineCode' => 'BA',
+                    'flightNumber' => '123'
+                ]
+            ]
+        ]
+    ],
+    'payments' => [
+        [
+            'amount' => 100.00,
+            'currency' => 'USD',
+            'card' => [
+                'number' => '4111111111111111',
+                'securityCode' => '123',
+                'holderName' => 'John Doe',
+                'expiryDate' => '1225'
+            ]
+        ]
+    ]
+];
+
+// Change order
+$response = Verteil::changeOrder($orderChangeParams);
+```
+
 ## Helper Classes
 
 The package includes a `VerteilRequestBuilder` class with helper methods to create common data structures:
@@ -290,45 +355,237 @@ The package includes a `VerteilRequestBuilder` class with helper methods to crea
 use Santosdave\VerteilWrapper\DataTypes\VerteilRequestBuilder as Builder;
 
 // Create passenger name
-$name = Builder::createNameType('John', 'Doe', 'Mr');
+$name = Builder::createNameType([
+    'given' => 'John',
+    'surname' => 'Doe',
+    'title' => 'Mr'
+]);
+
 
 // Create contact information
-$contacts = Builder::createContactType(
-    '1234567890',
-    'john.doe@example.com',
-    '123 Main St',
-    'London',
-    '12345',
-    'GB',
-    '44'
-);
+$contacts = Builder::createContactType([
+    'phoneNumber' => '1234567890',
+    'phoneCountryCode' => '44',
+    'email' => 'john.doe@example.com',
+    'street' => '123 Main St',
+    'city' => 'London',
+    'postalCode' => '12345',
+    'countryCode' => 'GB'
+]);
 
 // Create passport/document information
-$document = Builder::createPassengerDocumentType(
-    'AB123456',
-    'GB',
-    'PT',
-    '2030-01-01'
-);
+$document = Builder::createPassengerDocumentType([
+    'documentNumber' => 'AB123456',
+    'issuingCountry' => 'GB',
+    'type' => 'PT',
+    'expiryDate' => '2030-01-01'
+]);
 
 // Create payment card details
-$payment = Builder::createPaymentCardType(
-    '4111111111111111',
-    '123',
-    '1225',
-    'John Doe',
-    'VI'
-);
+$payment = Builder::createPaymentCardType([
+    'cardNumber' => '4111111111111111',
+    'cvv' => '123',
+    'expiryDate' => '1225',
+    'holderName' => 'John Doe',
+    'brand' => 'VI'
+]);;
 
 // Create flight details
-$flight = Builder::createFlightType(
-    'LHR',
-    'JFK',
-    '2024-12-01',
-    '09:00',
-    'BA',
-    '123'
-);
+$flight = Builder::createFlightType([
+    'departureAirport' => 'LHR',
+    'arrivalAirport' => 'JFK',
+    'departureDate' => '2024-12-01',
+    'departureTime' => '09:00',
+    'airlineCode' => 'BA',
+    'flightNumber' => '123',
+    'arrivalDate' => '2024-12-01',
+    'arrivalTime' => '12:00',
+    'classOfService' => 'Y'
+]);
+
+// Create price information
+$price = Builder::createPriceType([
+    'baseAmount' => 1000.00,
+    'taxAmount' => 200.00,
+    'currency' => 'USD'
+]);
+```
+
+### Order Reshop Example
+
+```php
+use Santosdave\VerteilWrapper\DataTypes\OrderReshop;
+
+$reshopParams = [
+    'owner' => 'BA',
+    'orderId' => 'ABC123',
+    'qualifiers' => [
+        [
+            'type' => 'CABIN',
+            'cabin' => 'Y',
+            'preferenceLevel' => 'Preferred'
+        ],
+        [
+            'type' => 'FARE',
+            'fareTypes' => ['PUBL', 'CORP'],
+            'fareBasis' => 'Y1N2C3'
+        ]
+    ],
+    'segments' => [
+        [
+            'segmentKey' => 'SEG1',
+            'newFlight' => [
+                'origin' => 'LHR',
+                'destination' => 'JFK',
+                'departureDate' => '2024-12-01',
+                'departureTime' => '09:00',
+                'airlineCode' => 'BA',
+                'flightNumber' => '123'
+            ]
+        ]
+    ],
+    'searchAlternateDates' => true
+];
+
+$response = Verteil::reshopOrder($reshopParams);
+```
+
+### Itinerary Reshop Example
+
+```php
+use Santosdave\VerteilWrapper\DataTypes\ItinReshop;
+
+// Create itinerary reshop request
+$itinReshopParams = [
+    'orderId' => [
+        'owner' => 'BA',
+        'value' => 'ABC123'
+    ],
+    'itineraryChanges' => [
+        [
+            'type' => 'SEGMENT_CHANGE',
+            'oldSegment' => [
+                'origin' => 'LHR',
+                'destination' => 'JFK',
+                'departure' => [
+                    'date' => '2024-12-01',
+                    'time' => '09:00'
+                ],
+                'airline' => 'BA',
+                'flightNumber' => '123'
+            ],
+            'newSegment' => [
+                'origin' => 'LHR',
+                'destination' => 'JFK',
+                'departure' => [
+                    'date' => '2024-12-02',
+                    'time' => '11:00'
+                ],
+                'airline' => 'BA',
+                'flightNumber' => '175'
+            ]
+        ]
+    ],
+    'pricingQualifiers' => [
+        [
+            'type' => 'CABIN',
+            'code' => 'Y'
+        ]
+    ],
+    'party' => [
+        'type' => 'CORPORATE',
+        'code' => 'CORP123',
+        'name' => 'Example Corp'
+    ]
+];
+
+// Reshop itinerary
+$response = Verteil::reshopItinerary($itinReshopParams);
+```
+
+### Order Change Notification Example
+
+```php
+use Santosdave\VerteilWrapper\DataTypes\OrderChangeNotif;
+
+// Create order change notification
+$notificationData = OrderChangeNotif::create([
+    'orderId' => [
+        'owner' => 'BA',
+        'value' => 'ABC123'
+    ],
+    'notification' => [
+        'type' => 'SCHEDULE_CHANGE',
+        'reason' => 'OPERATIONAL',
+        'severity' => 'WARNING',
+        'description' => 'Flight schedule has been modified due to operational constraints',
+        'affectedSegments' => [
+            [
+                'segmentRef' => 'SEG1',
+                'changeType' => 'TIME_CHANGE',
+                'description' => 'Departure time changed',
+                'oldValue' => '09:00',
+                'newValue' => '11:00',
+                'impacts' => [
+                    'duration' => [
+                        'change' => 120,
+                        'unit' => 'MIN'
+                    ]
+                ]
+            ]
+        ],
+        'customerNotification' => [
+            'required' => true,
+            'method' => 'EMAIL',
+            'template' => 'SCHEDULE_CHANGE_NOTIFICATION'
+        ]
+    ],
+    'serviceImpact' => [
+        [
+            'serviceId' => 'SVC1',
+            'serviceType' => 'MEAL',
+            'status' => 'MODIFIED',
+            'description' => 'Meal service adjusted due to new flight time',
+            'compensation' => [
+                'type' => 'VOUCHER',
+                'amount' => 15.00,
+                'currency' => 'USD'
+            ]
+        ]
+    ],
+    'alternatives' => [
+        [
+            'type' => 'RESCHEDULE',
+            'description' => 'Alternative flight options',
+            'validity' => [
+                'start' => '2024-12-01',
+                'end' => '2024-12-03'
+            ],
+            'segments' => [
+                [
+                    'origin' => 'LHR',
+                    'destination' => 'JFK',
+                    'airline' => 'BA',
+                    'flightNumber' => '175',
+                    'departure' => [
+                        'date' => '2024-12-01',
+                        'time' => '14:00'
+                    ],
+                    'arrival' => [
+                        'date' => '2024-12-01',
+                        'time' => '17:00'
+                    ]
+                ]
+            ],
+            'pricing' => [
+                'difference' => 0,
+                'currency' => 'USD'
+            ]
+        ]
+    ]
+]);
+
+$response = Verteil::sendOrderChangeNotification($notificationData);
 ```
 
 ## Error Handling

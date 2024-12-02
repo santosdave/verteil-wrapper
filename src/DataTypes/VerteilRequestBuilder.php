@@ -7,9 +7,9 @@ class VerteilRequestBuilder
     public static function createNameType(string $given, string $surname, ?string $title = null): array
     {
         return [
-            'given' => (array)$given,
-            'surname' => $surname,
-            'title' => $title
+            'given' => (array)($params['given'] ?? ''),
+            'surname' => $params['surname'] ?? '',
+            'title' => $params['title'] ?? null
         ];
     }
 
@@ -24,15 +24,15 @@ class VerteilRequestBuilder
     ): array {
         return [
             'phone' => [
-                'countryCode' => $phoneCountryCode,
-                'number' => $phoneNumber
+                'countryCode' => $params['phoneCountryCode'] ?? '1',
+                'number' => $params['phoneNumber'] ?? ''
             ],
-            'email' => $email,
+            'email' => $params['email'] ?? '',
             'address' => [
-                'street' => $street,
-                'city' => $city,
-                'postalCode' => $postalCode,
-                'countryCode' => $countryCode
+                'street' => $params['street'] ?? '',
+                'city' => $params['city'] ?? '',
+                'postalCode' => $params['postalCode'] ?? '',
+                'countryCode' => $params['countryCode'] ?? ''
             ]
         ];
     }
@@ -44,10 +44,10 @@ class VerteilRequestBuilder
         ?string $expiryDate = null
     ): array {
         return array_filter([
-            'type' => $type,
-            'number' => $documentNumber,
-            'country' => $issuingCountry,
-            'expiryDate' => $expiryDate
+            'type' => $params['type'] ?? 'PT',
+            'number' => $params['documentNumber'] ?? '',
+            'country' => $params['issuingCountry'] ?? '',
+            'expiryDate' => $params['expiryDate'] ?? null
         ]);
     }
 
@@ -61,11 +61,11 @@ class VerteilRequestBuilder
         return [
             'type' => 'card',
             'card' => [
-                'number' => $cardNumber,
-                'cvv' => $cvv,
-                'brand' => $brand,
-                'expiry' => $expiryDate,
-                'holderName' => $holderName
+                'number' => $params['cardNumber'] ?? '',
+                'cvv' => $params['cvv'] ?? '',
+                'brand' => $params['brand'] ?? 'VI',
+                'expiry' => $params['expiryDate'] ?? '',
+                'holderName' => $params['holderName'] ?? ''
             ]
         ];
     }
@@ -82,24 +82,24 @@ class VerteilRequestBuilder
         ?string $classOfService = null
     ): array {
         return array_filter([
-            'departureAirport' => $departureAirport,
-            'arrivalAirport' => $arrivalAirport,
-            'departureDate' => $departureDate,
-            'departureTime' => $departureTime,
-            'arrivalDate' => $arrivalDate,
-            'arrivalTime' => $arrivalTime,
-            'airlineCode' => $airlineCode,
-            'flightNumber' => $flightNumber,
-            'classOfService' => $classOfService
+            'departureAirport' => $params['departureAirport'] ?? '',
+            'arrivalAirport' => $params['arrivalAirport'] ?? '',
+            'departureDate' => $params['departureDate'] ?? '',
+            'departureTime' => $params['departureTime'] ?? '',
+            'arrivalDate' => $params['arrivalDate'] ?? null,
+            'arrivalTime' => $params['arrivalTime'] ?? null,
+            'airlineCode' => $params['airlineCode'] ?? '',
+            'flightNumber' => $params['flightNumber'] ?? '',
+            'classOfService' => $params['classOfService'] ?? null
         ]);
     }
 
     public static function createPriceType(float $baseAmount, float $taxAmount, string $currency): array
     {
         return [
-            'baseAmount' => $baseAmount,
-            'totalTax' => $taxAmount,
-            'currency' => $currency
+            'baseAmount' => $params['baseAmount'] ?? 0.0,
+            'totalTax' => $params['taxAmount'] ?? 0.0,
+            'currency' => $params['currency'] ?? 'USD'
         ];
     }
 }
