@@ -2,7 +2,6 @@
 
 namespace Santosdave\VerteilWrapper\RateLimit;
 
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Cache;
 use Santosdave\VerteilWrapper\Exceptions\VerteilApiException;
 
@@ -32,18 +31,17 @@ class RateLimiter
         $key = $this->getKey($endpoint);
         $limit = $this->getLimit($endpoint);
 
-        if (Redis::connection()->exists($key)) {
-            $current = (int) Redis::connection()->get($key);
-            if ($current >= $limit['requests']) {
-                return false;
-            }
-            Redis::connection()->incr($key);
-        } else {
-            Redis::connection()->setex(
-                $key,
-                $limit['duration'],
-                1
-            );
+        $current = Cache::get($key, 0);
+        
+        if ($current >= $limit['requests']) {
+            return false;
+        }
+
+        Cache::increment($key);
+        
+        // Set expiration if key is new
+        if ($current === 0) {
+            Cache::put($key, 1, now()->addSeconds($limit['duration']));
         }
 
         return true;
@@ -56,12 +54,8 @@ class RateLimiter
     {
         $key = $this->getKey($endpoint);
         $limit = $this->getLimit($endpoint);
+        $current = Cache::get($key, 0);
 
-        if (!Redis::connection()->exists($key)) {
-            return $limit['requests'];
-        }
-
-        $current = (int) Redis::connection()->get($key);
         return max(0, $limit['requests'] - $current);
     }
 
@@ -71,7 +65,11 @@ class RateLimiter
     public function retryAfter(string $endpoint): int
     {
         $key = $this->getKey($endpoint);
-        return Redis::connection()->ttl($key);
+        
+        // Get cache metadata to determine TTL
+        $ttl = Cache::getTimeToLive($key);
+        
+        return $ttl ? (int) $ttl : 0;
     }
 
     protected function getKey(string $endpoint): string
@@ -82,5 +80,23 @@ class RateLimiter
     protected function getLimit(string $endpoint): array
     {
         return $this->limits[$endpoint] ?? $this->limits['default'];
+    }
+
+    /**
+     * Clear rate limit for an endpoint
+     */
+    public function clear(string $endpoint): void
+    {
+        Cache::forget($this->getKey($endpoint));
+    }
+
+    /**
+     * Clear all rate limits
+     */
+    public function clearAll(): void
+    {
+        foreach (array_keys($this->limits) as $endpoint) {
+            $this->clear($endpoint);
+        }
     }
 }
