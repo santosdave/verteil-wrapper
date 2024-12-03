@@ -1,12 +1,19 @@
 # Verteil NDC API Laravel Wrapper
 
-A Laravel package for easy integration with the Verteil NDC API for airline bookings, searches, and management.
+A Laravel package for easy integration with the Verteil NDC API for airline bookings, searches, and management. This package provides a robust interface for interacting with Verteil's NDC API, including comprehensive error handling, rate limiting, caching, and monitoring capabilities.
 
 ## Features
 
 - Easy-to-use interfaces for all major Verteil API operations
 - Type-safe request building with helper classes
 - Built-in validation and error handling
+- Automatic token management and refresh
+- Request rate limiting
+- Response caching
+- Comprehensive logging
+- Retry handling for failed requests
+- Health monitoring and metrics collection
+- Security features including input sanitization and secure token storage
 - Supports all Verteil NDC API endpoints:
   - Air Shopping
   - Flight Price
@@ -15,6 +22,10 @@ A Laravel package for easy integration with the Verteil NDC API for airline book
   - Order Cancellation
   - Seat Availability
   - Service List
+  - Order Change
+  - Order Reshop
+  - Itinerary Reshop
+  - Order Change Notifications
 
 ## Installation
 
@@ -38,6 +49,8 @@ php artisan vendor:publish --provider="Santosdave\VerteilWrapper\VerteilServiceP
 VERTEIL_USERNAME=your_username
 VERTEIL_PASSWORD=your_password
 VERTEIL_BASE_URL=https://api.stage.verteil.com
+VERTEIL_TIMEOUT=30
+VERTEIL_VERIFY_SSL=true
 ```
 
 ## Basic Usage
@@ -48,6 +61,14 @@ VERTEIL_BASE_URL=https://api.stage.verteil.com
 use Santosdave\VerteilWrapper\Facades\Verteil;
 // or
 use Santosdave\VerteilWrapper\Services\VerteilService;
+```
+
+### Authentication
+
+The package handles authentication automatically, but you can manually authenticate if needed:
+
+```php
+$verteil = Verteil::authenticate();
 ```
 
 ### Air Shopping Example
@@ -601,10 +622,109 @@ try {
     // Handle API-specific errors
     $errorMessage = $e->getErrorMessage();
     $errorResponse = $e->getErrorResponse();
+
+    // Log the error or notify administrators
+    Log::error('Verteil API Error', [
+        'message' => $errorMessage,
+        'response' => $errorResponse
+    ]);
 } catch (\Exception $e) {
     // Handle other errors
 }
 ```
+
+### Caching
+
+The package includes built-in caching for appropriate endpoints:
+
+```php
+
+// Check cache
+$response = Verteil::getCache()->get('airShopping', $params);
+
+// Clear cache for specific endpoint
+Verteil::flushCache('airShopping');
+
+// Clear all cache
+Verteil::flushCache();
+
+```
+
+### Rate Limiting
+
+Rate limiting is handled automatically, but you can configure limits in the config file:
+
+```php
+// config/verteil.php
+'rate_limits' => [
+    'default' => [
+        'requests' => 60,
+        'duration' => 60 // seconds
+    ],
+    'airShopping' => [
+        'requests' => 30,
+        'duration' => 60
+    ]
+]
+```
+
+### Health Monitoring
+
+The package includes a health monitoring system:
+
+This will display metrics including:
+
+- API uptime
+- Response times
+- Error rates
+- Cache hit rates
+- Rate limit status
+- Token status
+
+```bash
+php artisan verteil:health
+```
+
+### Security Features
+
+The package includes several security features:
+
+- Automatic input sanitization
+- Secure token storage with encryption
+- Request validation
+- XSS protection
+- SQL injection protection
+
+### Logging
+
+All API interactions are automatically logged. You can customize the logging channel in the config:
+
+```php
+// config/verteil.php
+'logging' => [
+    'channel' => 'verteil',
+    'level' => 'debug'
+]
+```
+
+### Console Commands
+
+Available artisan commands:
+
+```bash
+php artisan verteil:health
+php artisan verteil:cache:flush
+php artisan verteil:cache:flush airShopping
+```
+
+### Events
+
+The package dispatches several events that you can listen for:
+
+- ApiRequestEvent
+- ApiResponseEvent
+- ApiErrorEvent
+- TokenRefreshEvent
 
 ## Testing
 
@@ -612,6 +732,44 @@ Run the test suite:
 
 ```bash
 composer test
+```
+
+### Advanced Configuration
+
+The package provides extensive configuration options:
+
+```php
+// config/verteil.php
+return [
+    'credentials' => [
+        'username' => env('VERTEIL_USERNAME'),
+        'password' => env('VERTEIL_PASSWORD'),
+    ],
+    'base_url' => env('VERTEIL_BASE_URL'),
+    'timeout' => env('VERTEIL_TIMEOUT', 30),
+    'verify_ssl' => env('VERTEIL_VERIFY_SSL', true),
+    'retry' => [
+        'max_attempts' => 3,
+        'delay' => 100, // milliseconds
+        'multiplier' => 2
+    ],
+    'cache' => [
+        'enabled' => true,
+        'ttl' => [
+            'airShopping' => 5, // minutes
+            'flightPrice' => 2,
+            'serviceList' => 5
+        ]
+    ],
+    'monitoring' => [
+        'enabled' => true,
+        'metrics_retention' => 24 // hours
+    ],
+    'notifications' => [
+        'slack_webhook_url' => env('VERTEIL_SLACK_WEBHOOK'),
+        'notification_email' => env('VERTEIL_NOTIFICATION_EMAIL')
+    ]
+];
 ```
 
 ## Contributing
