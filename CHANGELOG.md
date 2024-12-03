@@ -5,6 +5,29 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2024-12-03
+
+### Added
+- Universal response logging support for all endpoints
+- Smart flattening of deeply nested API responses
+- Special handling for common Verteil data patterns
+- Improved logging metadata with process and memory information
+- Intelligent request structure logging
+
+### Changed
+- Modified logger to handle unlimited nesting depths
+- Improved sanitization of sensitive data
+- Enhanced log readability for complex responses
+- Updated request logging to better handle multi-stage processing
+- Optimized memory usage in logging deep structures
+
+### Fixed
+- Fixed "Over 9 levels deep, aborting normalization" error in logging
+- Resolved response truncation issues
+- Fixed nested object handling in request logging
+- Corrected monetary value logging format
+- Fixed date/time combination logging
+
 ## [1.0.7] - 2024-12-03
 
 ### Added

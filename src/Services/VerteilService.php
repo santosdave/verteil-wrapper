@@ -218,69 +218,99 @@ class VerteilService
     // Protected Methods
     protected function makeRequest(string $endpoint, array $params)
     {
-        // Check cache first
-        if ($cachedResponse = $this->cache->get($endpoint, $params)) {
-            $this->logger->logRequest($endpoint, ['cached' => true]);
-            return $cachedResponse;
-        }
+        try {
+            // Check cache first
+            if ($cachedResponse = $this->cache->get($endpoint, $params)) {
+                $this->logger->logRequest($endpoint, [
+                    'cached' => true,
+                    'raw_params' => $params,
+                    'stage' => 'initial'
+                ]);
+                return $cachedResponse;
+            }
 
-        // Check rate limit
-        if (!$this->rateLimiter->attempt($endpoint)) {
-            $retryAfter = $this->rateLimiter->retryAfter($endpoint);
-            throw new VerteilApiException(
-                "Rate limit exceeded. Try again in {$retryAfter} seconds.",
-                429
-            );
-        }
+            // Check rate limit
+            if (!$this->rateLimiter->attempt($endpoint)) {
+                $retryAfter = $this->rateLimiter->retryAfter($endpoint);
+                throw new VerteilApiException(
+                    "Rate limit exceeded. Try again in {$retryAfter} seconds.",
+                    429
+                );
+            }
 
-        // Execute request with retry logic
-        return $this->retryHandler->execute(function () use ($endpoint, $params) {
-            $this->logger->logRequest($endpoint, $params);
-
-            // Sanitize input parameters
-            $sanitizedParams = $this->sanitize($params);
-
-            $this->setAuthorizationHeader();
-
-            $requestClass = "Santosdave\\VerteilWrapper\\Requests\\" . ucfirst($endpoint) . "Request";
-            $request = new $requestClass($sanitizedParams);
-
-            try {
-                $response = $this->client->post($request->getEndpoint(), [
-                    'json' => $request->toArray(),
-                    'headers' => array_filter($request->getHeaders())
+            // Execute request with retry logic
+            return $this->retryHandler->execute(function () use ($endpoint, $params) {
+                // Log initial request parameters
+                $this->logger->logRequest($endpoint, [
+                    'raw_params' => $params,
+                    'stage' => 'initial'
                 ]);
 
-                $responseData = json_decode($response->getBody(), true);
+                // Sanitize input parameters
+                $sanitizedParams = $this->sanitize($params);
 
-                // Cache successful response
-                $this->cache->put($endpoint, $params, $responseData);
+                // Log sanitized parameters
+                $this->logger->logRequest($endpoint, [
+                    'sanitized_params' => $sanitizedParams,
+                    'stage' => 'sanitized'
+                ]);
 
-                $this->logger->logResponse($endpoint, $response->getStatusCode(), $responseData);
+                $this->setAuthorizationHeader();
 
-                return $responseData;
-            } catch (\GuzzleHttp\Exception\RequestException $e) {
-                if ($e->hasResponse() && $e->getResponse()->getStatusCode() === 401) {
-                    // Token might be expired, clear it and retry once
-                    $this->tokenStorage->clearToken();
-                    $this->token = null;
+                $requestClass = "Santosdave\\VerteilWrapper\\Requests\\" . ucfirst($endpoint) . "Request";
+                $request = new $requestClass($sanitizedParams);
 
-                    return $this->makeRequest($endpoint, $params);
+                // Convert request to array and log final request
+                $finalRequest = $request->toArray();
+                $this->logger->logRequest($endpoint, [
+                    'final_request' => $finalRequest,
+                    'stage' => 'processed',
+                    'headers' => $request->getHeaders()
+                ]);
+
+                try {
+                    $response = $this->client->post($request->getEndpoint(), [
+                        'json' => $request->toArray(),
+                        'headers' => array_filter($request->getHeaders())
+                    ]);
+
+                    $responseData = json_decode($response->getBody(), true);
+
+                    // Cache successful response
+                    $this->cache->put($endpoint, $params, $responseData);
+
+                    $this->logger->logResponse($endpoint, $response->getStatusCode(), $responseData);
+
+                    return $responseData;
+                } catch (\GuzzleHttp\Exception\RequestException $e) {
+                    if ($e->hasResponse() && $e->getResponse()->getStatusCode() === 401) {
+                        // Token might be expired, clear it and retry once
+                        $this->tokenStorage->clearToken();
+                        $this->token = null;
+
+                        return $this->makeRequest($endpoint, $params);
+                    }
+
+                    $this->logger->logError($endpoint, $e);
+
+                    if ($e->hasResponse()) {
+                        $errorResponse = json_decode($e->getResponse()->getBody(), true);
+                        throw new VerteilApiException(
+                            $errorResponse['Errors']['Error'][0]['value'] ?? 'Unknown error',
+                            $e->getCode(),
+                            $e,
+                            $errorResponse
+                        );
+                    }
+                    throw $e;
                 }
-
-                $this->logger->logError($endpoint, $e);
-
-                if ($e->hasResponse()) {
-                    $errorResponse = json_decode($e->getResponse()->getBody(), true);
-                    throw new VerteilApiException(
-                        $errorResponse['Errors']['Error'][0]['value'] ?? 'Unknown error',
-                        $e->getCode(),
-                        $e,
-                        $errorResponse
-                    );
-                }
-                throw $e;
-            }
-        }, $endpoint);
+            }, $endpoint);
+        } catch (\Exception $e) {
+            $this->logger->logError($endpoint, $e, [
+                'raw_params' => $params,
+                'stage' => 'request_initialization'
+            ]);
+            throw $e;
+        }
     }
 }

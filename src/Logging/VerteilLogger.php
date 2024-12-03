@@ -38,7 +38,7 @@ class VerteilLogger
     }
 
     /**
-     * Log API request
+     * Log API request with stage information
      * 
      * @param string $endpoint
      * @param array $params
@@ -46,15 +46,31 @@ class VerteilLogger
      */
     public function logRequest(string $endpoint, array $params): void
     {
-        $this->log(LogLevel::DEBUG, 'API Request', [
+        if (!$this->enabled) return;
+
+        $stage = $params['stage'] ?? 'undefined';
+        unset($params['stage']); // Remove stage from logged params
+
+        $context = [
             'endpoint' => $endpoint,
+            'stage' => $stage,
             'params' => $this->sanitizeLogData($params),
-            'timestamp' => now()->toIso8601String()
-        ]);
+            'timestamp' => now()->toIso8601String(),
+            'request_id' => uniqid('req_'),
+        ];
+
+        $message = sprintf(
+            "API Request [%s] Stage: %s - Endpoint: %s",
+            $context['request_id'],
+            $stage,
+            $endpoint
+        );
+
+        $this->log(LogLevel::DEBUG, $message, $context);
     }
 
     /**
-     * Log API response
+     * Log API response with enhanced context
      * 
      * @param string $endpoint
      * @param int $statusCode
@@ -63,12 +79,38 @@ class VerteilLogger
      */
     public function logResponse(string $endpoint, int $statusCode, array $response): void
     {
-        $this->log(LogLevel::DEBUG, 'API Response', [
+        if (!$this->enabled) return;
+
+        $context = [
             'endpoint' => $endpoint,
             'status_code' => $statusCode,
             'response' => $this->sanitizeLogData($response),
-            'timestamp' => now()->toIso8601String()
-        ]);
+            'timestamp' => now()->toIso8601String(),
+            'response_time' => defined('LARAVEL_START') ? round((microtime(true) - LARAVEL_START) * 1000, 2) : null,
+        ];
+
+        $message = sprintf(
+            "API Response - Endpoint: %s, Status: %d, Time: %sms",
+            $endpoint,
+            $statusCode,
+            $context['response_time']
+        );
+
+        $this->log($this->getLogLevelForStatus($statusCode), $message, $context);
+    }
+
+    /**
+     * Determine appropriate log level based on status code
+     */
+    protected function getLogLevelForStatus(int $statusCode): string
+    {
+        if ($statusCode >= 500) {
+            return LogLevel::ERROR;
+        }
+        if ($statusCode >= 400) {
+            return LogLevel::WARNING;
+        }
+        return LogLevel::INFO;
     }
 
     /**
