@@ -3,23 +3,16 @@
 namespace Santosdave\VerteilWrapper\Cache;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Cache\TaggedCache;
 
 class VerteilCache
 {
     protected string $prefix = 'verteil_';
-    protected ?TaggedCache $cache;
     protected array $cacheableEndpoints = [
         'airShopping' => 5, // minutes
         'seatAvailability' => 2,
         'serviceList' => 5,
         'flightPrice' => 2
     ];
-
-    public function __construct()
-    {
-        $this->cache = Cache::tags(['verteil']);
-    }
 
     /**
      * Get cached response if available
@@ -31,7 +24,7 @@ class VerteilCache
         }
 
         $key = $this->generateCacheKey($endpoint, $params);
-        return $this->cache->get($key);
+        return Cache::get($key);
     }
 
     /**
@@ -46,8 +39,8 @@ class VerteilCache
         $key = $this->generateCacheKey($endpoint, $params);
         $ttl = $this->getCacheDuration($endpoint);
 
-        $this->cache->put($key, $response, now()->addMinutes($ttl));
-        $this->storeCacheKey($key);
+        Cache::put($key, $response, now()->addMinutes($ttl));
+        $this->storeCacheKeys($key);
     }
 
     /**
@@ -76,34 +69,38 @@ class VerteilCache
     }
 
     /**
+     * Store cache keys for tracking
+     */
+    protected function storeCacheKeys(string $key): void
+    {
+        $keys = Cache::get($this->prefix . 'keys', []);
+        $keys[] = $key;
+        Cache::put($this->prefix . 'keys', array_unique($keys), now()->addDays(1));
+    }
+
+    /**
      * Clear cached responses
      */
     public function clear(?string $endpoint = null): void
     {
         if (!$endpoint) {
-            // Clear all verteil cache
-            $this->cache->flush();
+            // Get all keys and clear them
+            $keys = Cache::get($this->prefix . 'keys', []);
+            foreach ($keys as $key) {
+                Cache::forget($key);
+            }
+            Cache::forget($this->prefix . 'keys');
             return;
         }
 
         // Clear specific endpoint cache
         $keys = Cache::get($this->prefix . 'keys', []);
-        $pattern = $this->prefix . $endpoint . '_*';
+        $pattern = $this->prefix . $endpoint . '_';
 
         foreach ($keys as $key) {
-            if (fnmatch($pattern, $key)) {
-                $this->cache->forget($key);
+            if (strpos($key, $pattern) === 0) {
+                Cache::forget($key);
             }
         }
-    }
-
-    /**
-     * Store cache key for later pattern matching
-     */
-    protected function storeCacheKey(string $key): void
-    {
-        $keys = Cache::get($this->prefix . 'keys', []);
-        $keys[] = $key;
-        Cache::put($this->prefix . 'keys', array_unique($keys));
     }
 }
