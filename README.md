@@ -780,6 +780,10 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 If you discover any security-related issues, please email 51959957+santosdave@users.noreply.github.com instead of using the issue tracker.
 
+## Credits
+
+santosdave  
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

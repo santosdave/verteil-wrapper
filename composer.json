@@ -42,7 +42,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "Santosdave\\VerteilWrapper\\VerteilProvider"
+        "Santosdave\\VerteilWrapper\\VerteilServiceProvider"
       ]
     }
   },
