@@ -5,19 +5,52 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2024-12-03
+
+### Added
+
+- Enhanced logging configuration options
+- Configurable log file location
+- Separate channel for Verteil logs
+- Log file size rotation
+- Log retention settings
+- Configurable event logging
+
+### Changed
+
+- Updated logging implementation to use dedicated channel
+- Improved log format with timestamps and better context
+- Added environment variable support for log configuration
+
+## [1.0.5] - 2024-12-03
+
+### Changed
+
+- Modified RateLimiter to use Laravel's Cache instead of Redis
+- Simplified rate limiting implementation
+- Added rate limit clearing functionality
+
+### Fixed
+
+- Removed Redis dependency requirement
+- Fixed "Class Redis not found" error in rate limiter
+
 ## [1.0.4] - 2024-12-03
 
 ### Changed
+
 - Modified cache implementation to support all Laravel cache drivers
 - Removed cache tagging dependency
 - Improved cache key management system
 
 ### Fixed
+
 - Fixed "This cache store does not support tagging" error
 
 ## [1.0.3] - 2024-12-03
 
 ### Fixed
+
 - Fixed "This cache store does not support tagging" error
 
 ## [1.0.2] - 2024-12-03
@@ -34,7 +67,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Monitoring options
   - Notification preferences
 
-
 ### Fixed
 
 - Added missing configuration file in correct package location at src/config/verteil.php
@@ -49,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-12-03
 
 ### Added
+
 - Initial release with core Verteil NDC API integration
 - Support for all major Verteil API endpoints:
   - Air Shopping
@@ -84,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full documentation
 
 ### Security
+
 - Secure token storage with encryption
 - Input sanitization and validation
 - XSS protection

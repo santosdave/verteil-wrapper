@@ -88,8 +88,31 @@ return [
     |
     */
     'logging' => [
-        'channel' => 'verteil',
-        'level' => env('VERTEIL_LOG_LEVEL', 'debug')
+        // Enable or disable logging
+        'enabled' => env('VERTEIL_LOGGING_ENABLED', true),
+
+        // Log channel name
+        'channel' => env('VERTEIL_LOG_CHANNEL', 'verteil'),
+
+        // Log file path (relative to storage/logs)
+        'path' => storage_path('logs/verteil.log'),
+
+        // Minimum log level
+        'level' => env('VERTEIL_LOG_LEVEL', 'debug'),
+
+        // Log specific events
+        'events' => [
+            'requests' => true,    // Log API requests
+            'responses' => true,   // Log API responses
+            'errors' => true,      // Log errors
+            'auth' => true,        // Log authentication events
+        ],
+
+        // Maximum log file size in MB (0 for unlimited)
+        'max_size' => 100,
+
+        // Number of daily log files to keep
+        'days_to_keep' => 30,
     ],
 
     /*

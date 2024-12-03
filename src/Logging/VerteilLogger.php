@@ -2,16 +2,39 @@
 
 namespace Santosdave\VerteilWrapper\Logging;
 
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Psr\Log\LogLevel;
 
 class VerteilLogger
 {
     protected string $channel;
+    protected string $logPath;
+    protected bool $enabled;
 
     public function __construct(string $channel = 'verteil')
     {
-        $this->channel = $channel;
+        $this->channel = Config::get('verteil.logging.channel', 'verteil');
+        $this->logPath = Config::get('verteil.logging.path', storage_path('logs/verteil.log'));
+        $this->enabled = Config::get('verteil.logging.enabled', true);
+
+        // Ensure the verteil channel is configured
+        $this->configureLoggingChannel();
+    }
+
+    /**
+     * Configure the verteil logging channel
+     */
+    protected function configureLoggingChannel(): void
+    {
+        // Only configure if not already set in config/logging.php
+        if (!Config::has('logging.channels.' . $this->channel)) {
+            Config::set('logging.channels.' . $this->channel, [
+                'driver' => 'single',
+                'path' => $this->logPath,
+                'level' => Config::get('verteil.logging.level', 'debug'),
+            ]);
+        }
     }
 
     /**
@@ -25,7 +48,8 @@ class VerteilLogger
     {
         $this->log(LogLevel::DEBUG, 'API Request', [
             'endpoint' => $endpoint,
-            'params' => $this->sanitizeLogData($params)
+            'params' => $this->sanitizeLogData($params),
+            'timestamp' => now()->toIso8601String()
         ]);
     }
 
@@ -42,7 +66,8 @@ class VerteilLogger
         $this->log(LogLevel::DEBUG, 'API Response', [
             'endpoint' => $endpoint,
             'status_code' => $statusCode,
-            'response' => $this->sanitizeLogData($response)
+            'response' => $this->sanitizeLogData($response),
+            'timestamp' => now()->toIso8601String()
         ]);
     }
 
@@ -63,7 +88,8 @@ class VerteilLogger
             'file' => $error->getFile(),
             'line' => $error->getLine(),
             'trace' => $error->getTraceAsString(),
-            'context' => $this->sanitizeLogData($context)
+            'context' => $this->sanitizeLogData($context),
+            'timestamp' => now()->toIso8601String()
         ]);
     }
 
@@ -76,7 +102,12 @@ class VerteilLogger
      */
     public function logAuth(string $event, array $context = []): void
     {
-        $this->log(LogLevel::INFO, 'Authentication: ' . $event, $this->sanitizeLogData($context));
+        if (!$this->enabled) return;
+
+        $this->log(LogLevel::INFO, 'Authentication: ' . $event, array_merge(
+            $this->sanitizeLogData($context),
+            ['timestamp' => now()->toIso8601String()]
+        ));
     }
 
     /**
@@ -101,11 +132,17 @@ class VerteilLogger
     protected function sanitizeLogData(array $data): array
     {
         $sensitiveFields = [
-            'password', 'token', 'authorization', 'credit_card', 'card_number', 
-            'cvv', 'secret', 'api_key'
+            'password',
+            'token',
+            'authorization',
+            'credit_card',
+            'card_number',
+            'cvv',
+            'secret',
+            'api_key'
         ];
 
-        array_walk_recursive($data, function(&$value, $key) use ($sensitiveFields) {
+        array_walk_recursive($data, function (&$value, $key) use ($sensitiveFields) {
             if (is_string($key) && in_array(strtolower($key), $sensitiveFields)) {
                 $value = '******';
             }
