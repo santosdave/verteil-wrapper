@@ -11,6 +11,8 @@ return [
     */
     'username' => env('VERTEIL_USERNAME'),
     'password' => env('VERTEIL_PASSWORD'),
+    'third_party_id' => env('VERTEIL_THIRD_PARTY_ID'),
+    'office_id' => env('VERTEIL_OFFICE_ID'),
 
     /*
     |--------------------------------------------------------------------------

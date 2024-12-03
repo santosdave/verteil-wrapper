@@ -51,6 +51,8 @@ VERTEIL_PASSWORD=your_password
 VERTEIL_BASE_URL=https://api.stage.verteil.com
 VERTEIL_TIMEOUT=30
 VERTEIL_VERIFY_SSL=true
+VERTEIL_THIRD_PARTY_ID=your_third_party_id
+VERTEIL_OFFICE_ID=your_office_id
 ```
 
 ## Basic Usage
@@ -76,13 +78,14 @@ $verteil = Verteil::authenticate();
 ```php
 use Santosdave\VerteilWrapper\DataTypes\AirShopping;
 
+
 $request = AirShopping::create([
     'coreQuery' => [
         'originDestinations' => [
             [
                 'departureAirport' => 'LHR',
                 'arrivalAirport' => 'JFK',
-                'departureDate' => '2024-12-01',
+                'departureDate' => '2024-12-03',
                 'key' => 'OD1'
             ]
         ]
@@ -90,10 +93,6 @@ $request = AirShopping::create([
     'travelers' => [
         [
             'passengerType' => 'ADT',
-            'frequentFlyer' => [
-                'airlineCode' => 'BA',
-                'accountNumber' => '12345678'
-            ],
             'objectKey' => 'T1',
             'name' => [
                 'given' => ['John'],
@@ -104,12 +103,49 @@ $request = AirShopping::create([
     ],
     'preference' => [
         'cabin' => 'Y',
-        'fareTypes' => ['PUBL', 'PVT']
-    ]
+        'fareTypes' => ['PUBL']
+    ],
+    'responseParameters' => [
+        'ResultsLimit' => [
+            'value' => 50
+        ],
+        'SortOrder' => [
+            [
+                'Order' => 'ASCENDING',
+                'Parameter' => 'PRICE'
+            ],
+            [
+                'Order' => 'ASCENDING',
+                'Parameter' => 'STOP'
+            ],
+            [
+                'Order' => 'ASCENDING',
+                'Parameter' => 'DEPARTURE_TIME'
+            ]
+        ],
+        'ShopResultPreference' => 'OPTIMIZED'
+    ],
+    'enableGDS' => true
 ]);
 
 $response = Verteil::airShopping($request);
 ```
+
+The response will contain available flights sorted by:
+1. Price (lowest first)
+2. Number of stops (direct flights first)
+3. Departure time (earlier flights first)
+
+Available cabin codes:
+- Y: Economy
+- W: Premium Economy
+- C: Business Class
+- F: First Class
+
+Shop Result Preferences:
+- OPTIMIZED: Same fare brands for every flight combination
+- FULL: All available offers
+- BEST: One best offer per flight combination
 
 ### Flight Price Example
 

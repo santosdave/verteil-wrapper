@@ -5,6 +5,27 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2024-12-03
+
+### Added
+
+- Support for ThirdpartyId and OfficeId in configurations
+- Added new environment variables VERTEIL_THIRD_PARTY_ID and VERTEIL_OFFICE_ID
+- Improved AirShopping request structure with better response parameters
+- Added comprehensive sort order options for flight results
+- Added support for different shop result preferences (OPTIMIZED, FULL, BEST)
+
+### Changed
+
+- Updated AirShoppingRequest to use configuration values for ThirdpartyId and OfficeId
+- Improved request validation for AirShopping endpoint
+- Enhanced documentation with detailed AirShopping examples
+
+### Fixed
+
+- Fixed AirShoppingRequest constructor parameter handling
+- Corrected response parameter structure in AirShopping requests
+
 ## [1.0.6] - 2024-12-03
 
 ### Added
