@@ -115,6 +115,8 @@ return [
 
         // Number of daily log files to keep
         'days_to_keep' => 30,
+
+        'max_depth' => 10,
     ],
 
     /*

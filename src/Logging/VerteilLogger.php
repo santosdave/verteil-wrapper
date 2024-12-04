@@ -6,35 +6,57 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Psr\Log\LogLevel;
 
+use Monolog\Logger;
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Formatter\JsonFormatter;
+use Monolog\Processor\IntrospectionProcessor;
+use Monolog\Processor\WebProcessor;
+
 class VerteilLogger
 {
+    protected Logger $logger;
     protected string $channel;
     protected string $logPath;
     protected bool $enabled;
+    protected int $maxDepth;
 
     public function __construct(string $channel = 'verteil')
     {
         $this->channel = Config::get('verteil.logging.channel', 'verteil');
         $this->logPath = Config::get('verteil.logging.path', storage_path('logs/verteil.log'));
         $this->enabled = Config::get('verteil.logging.enabled', true);
+        $this->maxDepth = Config::get('verteil.logging.max_depth', 10);
 
         // Ensure the verteil channel is configured
-        $this->configureLoggingChannel();
+        $this->initializeLogger();
     }
 
     /**
      * Configure the verteil logging channel
      */
-    protected function configureLoggingChannel(): void
+    protected function initializeLogger(): void
     {
-        // Only configure if not already set in config/logging.php
-        if (!Config::has('logging.channels.' . $this->channel)) {
-            Config::set('logging.channels.' . $this->channel, [
-                'driver' => 'single',
-                'path' => $this->logPath,
-                'level' => Config::get('verteil.logging.level', 'debug'),
-            ]);
-        }
+        // Create a new Logger instance
+        $this->logger = new Logger($this->channel);
+
+        // Create rotating file handler
+        $handler = new RotatingFileHandler(
+            $this->logPath,
+            Config::get('verteil.logging.days_to_keep', 30),
+            Logger::DEBUG
+        );
+
+        // Use JSON formatter with max depth control
+        $jsonFormatter = new JsonFormatter();
+        $jsonFormatter->setMaxNormalizeDepth($this->maxDepth);
+        $handler->setFormatter($jsonFormatter);
+
+        // Add processors for extra context
+        $this->logger->pushProcessor(new IntrospectionProcessor());
+        $this->logger->pushProcessor(new WebProcessor());
+
+        // Add handler to logger
+        $this->logger->pushHandler($handler);
     }
 
     /**
@@ -66,7 +88,7 @@ class VerteilLogger
             $endpoint
         );
 
-        $this->log(LogLevel::DEBUG, $message, $context);
+        $this->logger->debug($message, $context);
     }
 
     /**
@@ -96,7 +118,8 @@ class VerteilLogger
             $context['response_time']
         );
 
-        $this->log($this->getLogLevelForStatus($statusCode), $message, $context);
+        $level = $this->getLogLevelForStatus($statusCode);
+        $this->logger->log($level, $message, $context);
     }
 
     /**
@@ -105,12 +128,12 @@ class VerteilLogger
     protected function getLogLevelForStatus(int $statusCode): string
     {
         if ($statusCode >= 500) {
-            return LogLevel::ERROR;
+            return Logger::ERROR;
         }
         if ($statusCode >= 400) {
-            return LogLevel::WARNING;
+            return Logger::WARNING;
         }
-        return LogLevel::INFO;
+        return Logger::INFO;
     }
 
     /**
@@ -123,16 +146,38 @@ class VerteilLogger
      */
     public function logError(string $endpoint, \Throwable $error, array $context = []): void
     {
-        $this->log(LogLevel::ERROR, 'API Error', [
+        $errorContext = $this->normalizeContext([
             'endpoint' => $endpoint,
             'message' => $error->getMessage(),
             'code' => $error->getCode(),
             'file' => $error->getFile(),
             'line' => $error->getLine(),
-            'trace' => $error->getTraceAsString(),
+            'trace' => $this->normalizeTrace($error->getTrace()),
             'context' => $this->sanitizeLogData($context),
             'timestamp' => now()->toIso8601String()
         ]);
+
+        $this->logger->error('API Error', $errorContext);
+    }
+
+    protected function normalizeContext(array $context): array
+    {
+        array_walk_recursive($context, function (&$value) {
+            if (is_object($value)) {
+                $value = method_exists($value, '__toString') ? (string)$value : get_class($value);
+            } elseif (is_resource($value)) {
+                $value = get_resource_type($value);
+            }
+        });
+
+        return $context;
+    }
+
+    protected function normalizeTrace(array $trace): array
+    {
+        return array_map(function ($item) {
+            return array_intersect_key($item, array_flip(['file', 'line', 'function', 'class']));
+        }, array_slice($trace, 0, 10)); // Only keep first 10 trace items
     }
 
     /**
@@ -171,8 +216,12 @@ class VerteilLogger
      * @param array $data
      * @return array
      */
-    protected function sanitizeLogData(array $data): array
+    protected function sanitizeLogData(array $data, int $depth = 0): array
     {
+        if ($depth >= $this->maxDepth) {
+            return ['warning' => 'Max depth reached, data truncated'];
+        }
+
         $sensitiveFields = [
             'password',
             'token',
@@ -184,12 +233,21 @@ class VerteilLogger
             'api_key'
         ];
 
-        array_walk_recursive($data, function (&$value, $key) use ($sensitiveFields) {
+        $result = [];
+        foreach ($data as $key => $value) {
             if (is_string($key) && in_array(strtolower($key), $sensitiveFields)) {
-                $value = '******';
+                $result[$key] = '******';
+            } elseif (is_array($value)) {
+                $result[$key] = $this->sanitizeLogData($value, $depth + 1);
+            } elseif (is_object($value)) {
+                $result[$key] = get_class($value);
+            } elseif (is_resource($value)) {
+                $result[$key] = get_resource_type($value);
+            } else {
+                $result[$key] = $value;
             }
-        });
+        }
 
-        return $data;
+        return $result;
     }
 }

@@ -5,6 +5,34 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2024-12-04
+
+### Added
+
+- Implemented Monolog for advanced logging capabilities
+- Added depth control for nested log structures
+- Added rotating file handler for log management
+- Added JSON formatting for log entries
+- Added new logging processors for additional context
+- Added trace normalization for error logging
+- Added object and resource handling in logs
+- Added configurable max depth setting for logs
+
+### Changed
+
+- Refactored VerteilLogger class to use Monolog
+- Improved log data sanitization
+- Enhanced context normalization
+- Updated log level handling
+- Improved error context formatting
+
+### Fixed
+
+- Fixed "Over 9 levels deep, aborting normalization" error in logging
+- Fixed issues with deep nested structures in logs
+- Fixed memory issues with large response logging
+
+
 ## [1.0.8] - 2024-12-03
 
 ### Added
