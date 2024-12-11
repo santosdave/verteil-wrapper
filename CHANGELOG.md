@@ -5,6 +5,47 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-12-11
+
+### Added
+
+- Enhanced AirShoppingResponse with comprehensive data extraction:
+  - Added detailed flight segment information parsing
+  - Added support for baggage allowance extraction (checked and carry-on)
+  - Added price class information formatting
+  - Added fare details extraction
+  - Added support for corporate fare information
+  - Added flight duration parsing
+  - Added time limit information handling
+  - Added commission information formatting
+  - Added flight stops information
+  - Added operating carrier details
+  - Added currency metadata extraction
+  - Added response statistics generation
+  - Added detailed error information handling
+  - Added comprehensive warning handling
+  - Added extensive price breakdown formatting
+  - Added support for piece and weight allowance formatting
+  - Added trip duration calculation
+
+### Changed
+
+- Refactored AirShoppingResponse for better data organization:
+  - Improved response data structure
+  - Enhanced error and warning handling
+  - Optimized data extraction methods
+  - Improved price formatting
+  - Enhanced datetime handling
+  - Improved array access safety
+  - Updated response validation logic
+
+### Fixed
+
+- Fixed nested data extraction in AirShoppingResponse
+- Improved handling of missing or null values in response data
+- Fixed duration parsing edge cases
+- Corrected price calculation inconsistencies
+
 ## [1.1.0] - 2024-12-04
 
 ### Added
@@ -32,10 +73,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issues with deep nested structures in logs
 - Fixed memory issues with large response logging
 
-
 ## [1.0.8] - 2024-12-03
 
 ### Added
+
 - Universal response logging support for all endpoints
 - Smart flattening of deeply nested API responses
 - Special handling for common Verteil data patterns
@@ -43,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Intelligent request structure logging
 
 ### Changed
+
 - Modified logger to handle unlimited nesting depths
 - Improved sanitization of sensitive data
 - Enhanced log readability for complex responses
@@ -50,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized memory usage in logging deep structures
 
 ### Fixed
+
 - Fixed "Over 9 levels deep, aborting normalization" error in logging
 - Resolved response truncation issues
 - Fixed nested object handling in request logging

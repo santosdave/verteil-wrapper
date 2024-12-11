@@ -121,7 +121,8 @@ class VerteilService
     public function airShopping(array $params)
     {
         $response = $this->makeRequest('airShopping', $params);
-        return new AirShoppingResponse($response);
+        $airShoppingResponse = new AirShoppingResponse($response);
+        return $airShoppingResponse->toArray();
     }
 
     // Flight Price Methods
