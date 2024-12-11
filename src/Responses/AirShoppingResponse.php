@@ -657,12 +657,16 @@ class AirShoppingResponse extends BaseResponse
             'code' => $priceClass['Code'] ?? null,
             'displayOrder' => $priceClass['DisplayOrder'] ?? null,
             'descriptions' => array_map(function ($description) {
-                return [
+                $formatted = [
                     'text' => $description['Text']['value'] ?? null,
-                    'category' => $description['Category'] ?? null,
-                    'media' => isset($description['Media']) ?
-                        $this->formatMedia($description['Media']) : []
+                    'category' => $description['Category'] ?? null
                 ];
+
+                if (isset($description['Media'])) {
+                    $formatted['media'] = $this->formatMedia($description['Media']);
+                }
+
+                return $formatted;
             }, $priceClass['Descriptions']['Description'] ?? [])
         ];
     }
@@ -892,21 +896,27 @@ class AirShoppingResponse extends BaseResponse
     {
         return array_map(function ($item) {
             $mediaRef = null;
-            if (isset($item['MediaID'])) {
-                $mediaRef = $this->mediaReferences[$item['MediaID']] ?? null;
+
+            // Handle MediaRef structure
+            if (isset($item['MediaRef']['ref'])) {
+                $mediaRef = $this->mediaReferences[$item['MediaRef']['ref']] ?? null;
             }
 
+            if ($mediaRef) {
+                return [
+                    'reference' => $item['MediaRef']['ref'],
+                    'links' => $mediaRef['links'] ?? [],
+                    'descriptions' => $mediaRef['descriptions'] ?? []
+                ];
+            }
+
+            // Handle direct media structure if no reference
             return [
-                'id' => $mediaRef['ID'] ?? $item['ID'] ?? null,
-                'url' => $mediaRef['URI'] ?? $item['URI'] ?? null,
-                'type' => $mediaRef['MediaType'] ?? $item['MediaType'] ?? null,
-                'format' => $mediaRef['Format'] ?? $item['Format'] ?? null,
-                'width' => $mediaRef['Width'] ?? $item['Width'] ?? null,
-                'height' => $mediaRef['Height'] ?? $item['Height'] ?? null,
-                'title' => $mediaRef['Title'] ?? $item['Title'] ?? null,
-                'description' => $mediaRef['Description'] ?? $item['Description'] ?? null,
-                'size' => $mediaRef['Size'] ?? $item['Size'] ?? null,
-                'reference' => $item['MediaID'] ?? null
+                'links' => isset($item['MediaLinks']) ?
+                    $this->formatMediaLinks($item['MediaLinks']) : [],
+                'descriptions' => array_map(function ($desc) {
+                    return $desc['Text']['value'] ?? null;
+                }, $item['Descriptions']['Description'] ?? [])
             ];
         }, $media);
     }
@@ -1324,11 +1334,34 @@ class AirShoppingResponse extends BaseResponse
     {
         if (isset($this->data['DataLists']['MediaList']['Media'])) {
             foreach ($this->data['DataLists']['MediaList']['Media'] as $media) {
-                if (isset($media['MediaID'])) {
-                    $this->mediaReferences[$media['MediaID']] = $media;
+                if (isset($media['ListKey'])) {
+                    $this->mediaReferences[$media['ListKey']] = [
+                        'links' => $this->formatMediaLinks($media['MediaLinks'] ?? []),
+                        'descriptions' => array_map(function ($desc) {
+                            return $desc['Text']['value'] ?? null;
+                        }, $media['Descriptions']['Description'] ?? [])
+                    ];
                 }
             }
         }
+    }
+
+    /**
+     * Format media links by size
+     */
+    protected function formatMediaLinks(array $mediaLinks): array
+    {
+        $formattedLinks = [];
+
+        foreach ($mediaLinks as $link) {
+            $formattedLinks[$link['Size']] = [
+                'url' => $link['Url'] ?? null,
+                'type' => $link['Type'] ?? null,
+                'size' => $link['Size'] ?? null
+            ];
+        }
+
+        return $formattedLinks;
     }
 
     /**

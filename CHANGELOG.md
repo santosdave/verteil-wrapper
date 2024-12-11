@@ -5,6 +5,27 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2024-12-11
+
+### Fixed
+
+- Fixed media reference resolution in price class descriptions to properly handle MediaLinks and MediaRef structures
+- Fixed media links organization to preserve size-specific URLs and types
+- Fixed media description handling to properly extract and associate text content
+
+### Added
+
+- Added formatMediaLinks() method to organize media links by size (Small, Medium, Large, Unknown)
+- Enhanced mediaReferences structure to store both links and descriptions
+- Added support for web page links in media references
+
+### Changed
+
+- Updated buildMediaReferences() to use ListKey as reference key
+- Improved formatMedia() to handle both direct media content and references
+- Modified media data structure to organize links by size for easier access
+- Enhanced price class formatting to properly resolve and include media references
+
 ## [1.2.1] - 2024-12-11
 
 ### Fixed
