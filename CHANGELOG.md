@@ -5,6 +5,30 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2024-12-11
+
+### Fixed
+
+* Fixed datetime formatting in timeLimit expirationDateTime to include full datetime with timezone instead of just date
+* Fixed currency decimal precision for monetary amounts based on currency metadata
+* Fixed media reference resolution in price class descriptions
+
+### Added
+
+* Added $currencyDecimals property to store decimal places configuration for different currencies
+* Added $mediaReferences property to store media lookup table
+* Added initializeCurrencyDecimals() method to initialize currency decimals from metadata
+* Added buildMediaReferences() method to build media reference lookup table
+* Added formatAmount() method for currency-specific decimal formatting
+
+### Changed
+
+* Enhanced formatDateTime() method to use Carbon for proper datetime parsing and timezone handling
+* Updated formatTimeLimit() to include complete datetime information
+* Updated formatPrice() and formatTaxes() to respect currency-specific decimal places
+* Improved formatMedia() to properly resolve and merge media references
+* Updated formatPriceClass() to handle media references correctly
+
 ## [1.2.0] - 2024-12-11
 
 ### Added

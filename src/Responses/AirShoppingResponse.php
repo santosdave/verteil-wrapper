@@ -8,6 +8,33 @@ use Carbon\Carbon;
 class AirShoppingResponse extends BaseResponse
 {
 
+    /**
+     * Currency decimal places mapping
+     * Default decimals if not specified in metadata
+     */
+    protected array $currencyDecimals = [
+        'USD' => 2,
+        'EUR' => 2,
+        'GBP' => 2,
+        'CHF' => 2,
+        'INR' => 0,
+        'JPY' => 0,
+        'AED' => 0,
+    ];
+
+    /**
+     * Media references mapping
+     */
+    protected array $mediaReferences = [];
+
+
+    public function __construct(array $data)
+    {
+        parent::__construct($data);
+        $this->initializeCurrencyDecimals();
+        $this->buildMediaReferences();
+    }
+
     public function toArray(): array
     {
         $data = $this->data ?? null;
@@ -633,7 +660,8 @@ class AirShoppingResponse extends BaseResponse
                 return [
                     'text' => $description['Text']['value'] ?? null,
                     'category' => $description['Category'] ?? null,
-                    'media' => $this->formatMedia($description['Media'] ?? [])
+                    'media' => isset($description['Media']) ?
+                        $this->formatMedia($description['Media']) : []
                 ];
             }, $priceClass['Descriptions']['Description'] ?? [])
         ];
@@ -863,16 +891,22 @@ class AirShoppingResponse extends BaseResponse
     protected function formatMedia(array $media): array
     {
         return array_map(function ($item) {
+            $mediaRef = null;
+            if (isset($item['MediaID'])) {
+                $mediaRef = $this->mediaReferences[$item['MediaID']] ?? null;
+            }
+
             return [
-                'id' => $item['ID'] ?? null,
-                'url' => $item['URI'] ?? null,
-                'type' => $item['MediaType'] ?? null,
-                'format' => $item['Format'] ?? null,
-                'width' => $item['Width'] ?? null,
-                'height' => $item['Height'] ?? null,
-                'title' => $item['Title'] ?? null,
-                'description' => $item['Description'] ?? null,
-                'size' => $item['Size'] ?? null
+                'id' => $mediaRef['ID'] ?? $item['ID'] ?? null,
+                'url' => $mediaRef['URI'] ?? $item['URI'] ?? null,
+                'type' => $mediaRef['MediaType'] ?? $item['MediaType'] ?? null,
+                'format' => $mediaRef['Format'] ?? $item['Format'] ?? null,
+                'width' => $mediaRef['Width'] ?? $item['Width'] ?? null,
+                'height' => $mediaRef['Height'] ?? $item['Height'] ?? null,
+                'title' => $mediaRef['Title'] ?? $item['Title'] ?? null,
+                'description' => $mediaRef['Description'] ?? $item['Description'] ?? null,
+                'size' => $mediaRef['Size'] ?? $item['Size'] ?? null,
+                'reference' => $item['MediaID'] ?? null
             ];
         }, $media);
     }
@@ -1049,20 +1083,23 @@ class AirShoppingResponse extends BaseResponse
     protected function formatPrice(array $price): array
     {
         if (isset($price['SimpleCurrencyPrice'])) {
+            $currency = $price['SimpleCurrencyPrice']['Code'] ?? 'USD';
             return [
-                'amount' => (float) ($price['SimpleCurrencyPrice']['value'] ?? 0),
-                'currency' => $price['SimpleCurrencyPrice']['Code'] ?? null
+                'amount' => $this->formatAmount((float)($price['SimpleCurrencyPrice']['value'] ?? 0), $currency),
+                'currency' => $currency
             ];
         }
 
+        $currency = $price['TotalAmount']['Code'] ?? 'INR';
+
         return [
-            'amount' => (float) ($price['TotalAmount']['value'] ?? 0),
-            'currency' => $price['TotalAmount']['Code'] ?? null,
+            'amount' => $this->formatAmount((float)($price['TotalAmount']['value'] ?? 0), $currency),
+            'currency' => $currency,
             'base' => [
-                'amount' => (float) ($price['BaseAmount']['value'] ?? 0),
-                'currency' => $price['BaseAmount']['Code'] ?? null
+                'amount' => $this->formatAmount((float)($price['BaseAmount']['value'] ?? 0), $currency),
+                'currency' => $currency
             ],
-            'taxes' => $this->formatTaxes($price['Taxes'] ?? [])
+            'taxes' => $this->formatTaxes($price['Taxes'] ?? [], $currency)
         ];
     }
 
@@ -1072,14 +1109,15 @@ class AirShoppingResponse extends BaseResponse
      * @param array $taxes
      * @return array
      */
-    protected function formatTaxes(array $taxes): array
+    protected function formatTaxes(array $taxes, string $currency): array
     {
         $taxDetails = [];
         foreach ($taxes['Tax'] ?? [] as $tax) {
+            $taxCurrency = $tax['Amount']['Code'] ?? $currency;
             $taxDetails[] = [
                 'code' => $tax['TaxCode'] ?? null,
-                'amount' => (float) ($tax['Amount']['value'] ?? 0),
-                'currency' => $tax['Amount']['Code'] ?? null
+                'amount' => $this->formatAmount((float)($tax['Amount']['value'] ?? 0), $taxCurrency),
+                'currency' => $taxCurrency
             ];
         }
         return $taxDetails;
@@ -1231,7 +1269,7 @@ class AirShoppingResponse extends BaseResponse
         }
 
         try {
-            return Carbon::parse($datetime)->format('Y-m-d');
+            return Carbon::parse($datetime)->format('Y-m-d\TH:i:s\Z');
         } catch (\Exception $e) {
             return $datetime;
         }
@@ -1258,5 +1296,47 @@ class AirShoppingResponse extends BaseResponse
         }
 
         return $currencies;
+    }
+
+    /**
+     * Initialize currency decimals from metadata
+     */
+    protected function initializeCurrencyDecimals(): void
+    {
+        if (isset($this->data['Metadata']['Other']['OtherMetadata'])) {
+            foreach ($this->data['Metadata']['Other']['OtherMetadata'] as $metadata) {
+                if (isset($metadata['CurrencyMetadatas']['CurrencyMetadata'])) {
+                    foreach ($metadata['CurrencyMetadatas']['CurrencyMetadata'] as $currency) {
+                        // Extract currency code from metadata key (e.g. "LHG-EUR" -> "EUR")
+                        if (preg_match('/[A-Z]{3}$/', $currency['MetadataKey'], $matches)) {
+                            $this->currencyDecimals[$matches[0]] = $currency['Decimals'];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Build media reference mapping
+     */
+    protected function buildMediaReferences(): void
+    {
+        if (isset($this->data['DataLists']['MediaList']['Media'])) {
+            foreach ($this->data['DataLists']['MediaList']['Media'] as $media) {
+                if (isset($media['MediaID'])) {
+                    $this->mediaReferences[$media['MediaID']] = $media;
+                }
+            }
+        }
+    }
+
+    /**
+     * Format monetary amount with correct decimals
+     */
+    protected function formatAmount(float $amount, string $currency): float
+    {
+        $decimals = $this->currencyDecimals[$currency] ?? 2;
+        return round($amount, $decimals);
     }
 }
