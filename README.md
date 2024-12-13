@@ -132,17 +132,20 @@ $response = Verteil::airShopping($request);
 ```
 
 The response will contain available flights sorted by:
+
 1. Price (lowest first)
 2. Number of stops (direct flights first)
 3. Departure time (earlier flights first)
 
 Available cabin codes:
+
 - Y: Economy
 - W: Premium Economy
 - C: Business Class
 - F: First Class
 
 Shop Result Preferences:
+
 - OPTIMIZED: Same fare brands for every flight combination
 - FULL: All available offers
 - BEST: One best offer per flight combination
@@ -154,39 +157,58 @@ use Santosdave\VerteilWrapper\DataTypes\FlightPrice;
 use Santosdave\VerteilWrapper\DataTypes\VerteilRequestBuilder as Builder;
 
 // Create flight details using named parameters
-$flight = Builder::createFlightType([
-    'departureAirport' => 'LHR',
-    'arrivalAirport' => 'JFK',
-    'departureDate' => '2024-12-01',
-    'departureTime' => '09:00',
-    'airlineCode' => 'BA',
-    'flightNumber' => '123',
-    'arrivalDate' => '2024-12-01',
-    'arrivalTime' => '12:00',
-    'classOfService' => 'Y'
-]);
-
 $request = FlightPrice::create([
+    'query' => [
+        'originDestinations' => [
+            [
+                'flights' => [
+                    [
+                        'segmentKey' => 'FL1',
+                        'departure' => [
+                            'airportCode' => 'LHR',
+                            'date' => '2024-12-25',
+                            'time' => '09:00'
+                        ],
+                        'arrival' => [
+                            'airportCode' => 'JFK',
+                            'date' => '2024-12-25',
+                            'time' => '15:00'
+                        ],
+                        'airlineCode' => 'BA',
+                        'flightNumber' => '175',
+                        'classOfService' => 'Y',
+                        'classOfServiceRefs' => ['FBCODE1ADT']
+                    ]
+                ]
+            ]
+        ],
+        'offers' => [
+            [
+                'owner' => 'BA',
+                'offerId' => 'OF123456',
+                'offerItems' => [
+                    [
+                        'id' => 'OI1',
+                        'refs' => ['PAX1'],
+                        'selectedSeats' => [
+                            [
+                                'segmentRefs' => ['FL1'],
+                                'travelerRef' => 'PAX1',
+                                'column' => 'A',
+                                'row' => '12'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ],
     'dataLists' => [
         'fares' => [
             [
                 'listKey' => 'FARE1',
                 'code' => 'Y1N2C3',
                 'fareCode' => 'Y'
-            ]
-        ]
-    ],
-    'query' => [
-        'originDestinations' => [
-            [
-                'flights' => [$flight]
-            ]
-        ],
-        'offers' => [
-            [
-                'owner' => 'BA',
-                'offerId' => 'OFFER123',
-                'offerItems' => ['ITEM1', 'ITEM2']
             ]
         ]
     ],
@@ -818,7 +840,7 @@ If you discover any security-related issues, please email 51959957+santosdave@us
 
 ## Credits
 
-santosdave  
+santosdave
 
 ## License
 

@@ -5,6 +5,37 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### 2.0.0 - 2024-12-13
+
+### Added
+
+- Complete rewrite of FlightPrice request builder with improved validation
+- Enhanced corporate booking support in FlightPrice
+- Comprehensive seat selection functionality
+- Support for frequent flyer program integration
+- Multiple currency handling capabilities
+- Payment card validation and processing
+- New helper methods in VerteilRequestBuilder
+- Enhanced error handling with detailed messages
+- Support for ThirdpartyId and OfficeId in configurations
+
+### Changed
+
+- Refactored FlightPriceRequest for better validation
+- Updated request structure to match latest Verteil API specifications
+- Improved handling of optional parameters
+- Enhanced type safety throughout the codebase
+- Better organization of complex data structures
+- Updated documentation with comprehensive examples
+
+### Fixed
+
+- Fixed validation issues in FlightPrice requests
+- Corrected handling of nested offer structures
+- Fixed currency conversion edge cases
+- Improved error handling for invalid corporate codes
+- Fixed seat selection validation issues
+
 ## [1.2.2] - 2024-12-11
 
 ### Fixed
