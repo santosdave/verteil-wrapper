@@ -5,6 +5,24 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2024-12-16
+
+### Fixed
+
+- Fixed "Too few arguments" error in VerteilService makeRequest method by adding RequestHelper class to properly transform parameters for different request types
+- Added support for complex request parameter transformations while maintaining backward compatibility with simple requests
+
+### Added
+
+- New RequestHelper class for transforming raw API parameters into typed request constructor arguments
+- Added support for FlightPrice request parameter transformation
+- Added extensible parameter transformation system for future endpoint additions
+
+### Changed
+
+- Modified VerteilService makeRequest method to use RequestHelper for parameter transformation
+- Updated request instantiation to use spread operator with transformed parameters
+
 ### [2.0.0] - 2024-12-13
 
 ### Added

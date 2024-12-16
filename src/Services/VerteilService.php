@@ -8,6 +8,7 @@ use Santosdave\VerteilWrapper\Cache\VerteilCache;
 use Santosdave\VerteilWrapper\Exceptions\VerteilApiException;
 use Santosdave\VerteilWrapper\Logging\VerteilLogger;
 use Santosdave\VerteilWrapper\RateLimit\RateLimiter;
+use Santosdave\VerteilWrapper\Requests\RequestHelper;
 use Santosdave\VerteilWrapper\Responses\AirShoppingResponse;
 use Santosdave\VerteilWrapper\Responses\FlightPriceResponse;
 use Santosdave\VerteilWrapper\Responses\ItinReshopResponse;
@@ -260,6 +261,9 @@ class VerteilService
 
                 $requestClass = "Santosdave\\VerteilWrapper\\Requests\\" . ucfirst($endpoint) . "Request";
                 $request = new $requestClass($sanitizedParams);
+
+                $constructorArgs = RequestHelper::transformParameters($endpoint, $sanitizedParams);
+                $request = new $requestClass(...$constructorArgs);
 
                 // Convert request to array and log final request
                 $finalRequest = $request->toArray();
