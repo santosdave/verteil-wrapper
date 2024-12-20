@@ -157,68 +157,129 @@ use Santosdave\VerteilWrapper\DataTypes\FlightPrice;
 use Santosdave\VerteilWrapper\DataTypes\VerteilRequestBuilder as Builder;
 
 // Create flight details using named parameters
+
+
 $request = FlightPrice::create([
-    'query' => [
-        'originDestinations' => [
-            [
-                'flights' => [
+    'third_party_id' => 'EK',
+            'dataLists' => [
+                'fares' => [
                     [
-                        'segmentKey' => 'FL1',
-                        'departure' => [
-                            'airportCode' => 'LHR',
-                            'date' => '2024-12-25',
-                            'time' => '09:00'
-                        ],
-                        'arrival' => [
-                            'airportCode' => 'JFK',
-                            'date' => '2024-12-25',
-                            'time' => '15:00'
-                        ],
-                        'airlineCode' => 'BA',
-                        'flightNumber' => '175',
-                        'classOfService' => 'Y',
-                        'classOfServiceRefs' => ['FBCODE1ADT']
+                        'listKey' => 'someOtherValue',
+                        'code' => 'someOtherValue',  // Economy fare basis code
+                        'fareCode' => '70J',
+                        'refs' => ['someOtherValue']
+                    ],
+                ],
+                'anonymousTravelers' => [
+                    [
+                        'objectKey' => 'EK-T1',
+                        'passengerType' => 'ADT'
+                    ],
+                    [
+                        'objectKey' => 'EK-T2',
+                        'passengerType' => 'ADT'
+                    ],
+                    [
+                        'objectKey' => 'EK-T3',
+                        'passengerType' => 'CHD',
+                        'age' => [
+                            'value' => 8,
+                            'birthDate' => '2016-06-15'
+                        ]
                     ]
                 ]
-            ]
-        ],
-        'offers' => [
-            [
-                'owner' => 'BA',
-                'offerId' => 'OF123456',
-                'offerItems' => [
+            ],
+            'query' => [
+                'originDestinations' => [
                     [
-                        'id' => 'OI1',
-                        'refs' => ['PAX1'],
-                        'selectedSeats' => [
+                        'flights' => [
                             [
-                                'segmentRefs' => ['FL1'],
-                                'travelerRef' => 'PAX1',
-                                'column' => 'A',
-                                'row' => '12'
+                                'segmentKey' => 'someOtherValue',
+                                'departure' => [
+                                    'airportCode' => 'NBO',
+                                    'date' => '2024-12-27',
+                                    'time' => '22:45',
+                                    'terminal' => '1B'
+                                ],
+                                'arrival' => [
+                                    'airportCode' => 'DXB',
+                                    'date' => '2024-12-28',
+                                    'time' => '04:45',
+                                    'terminal' => '3'
+                                ],
+                                'airlineCode' => 'EK',
+                                'flightNumber' => '722',
+                                'classOfService' => 'Q',
+                                'classOfServiceRefs' => ['someOtherValue']
+                            ],
+                        ]
+                    ]
+                ],
+                'offers' => [
+                    [
+                        'owner' => 'EK',
+                        'offerId' => 'someOtherValue',
+                        'offerItems' => [
+                            [
+                                'id' => 'someOtherValue',
+                                'quantity' => '2',
+                                'refs' => ['EK-T1', 'EK-T2'],  // Reference to first adult
+                            ],
+                            [
+                                'id' => 'someOtherValue',
+                                'quantity' => '1',
+                                'refs' => ['EK-T3'],  // Reference to child
                             ]
+                        ],
+                        'refs' => [
+                            'VDC-AIRLINE-SRID',
+                            'someOtherValue'
+                        ]
+                    ]
+                ]
+            ],
+            'travelers' => [
+                [
+                    'passengerType' => 'ADT',
+                    'objectKey' => 'EK-T1'
+                ],
+                [
+                    'passengerType' => 'ADT',
+                    'objectKey' => 'EK-T2'
+                ],
+                [
+                    'passengerType' => 'CHD',
+                    'objectKey' => 'EK-T3'
+                ]
+            ],
+            'shoppingResponseId' => [
+                'owner' => 'EK',
+                'responseId' => 'someOtherValue'  // Response ID from AirShopping response
+            ],
+            'metadata' => [
+                [
+                    'priceMetadata' => [
+                        [
+                            'key' => 'someOtherValue',
+                            'type' => 'com.verteil.pricemanager.data.PriceRuleAugPoint',
+                            'value' => 'someOtherValue'
+                        ],
+                        [
+                            'key' => 'someOtherValue',
+                            'value' => 'someOtherValue'
+                        ],
+                        [
+                            'key' => 'VDC-AIRLINE-SRID',
+                            'javaType' => 'java.util.HashMap',
+                            'value' => 'someOtherValue'
                         ]
                     ]
                 ]
             ]
-        ]
-    ],
-    'dataLists' => [
-        'fares' => [
-            [
-                'listKey' => 'FARE1',
-                'code' => 'Y1N2C3',
-                'fareCode' => 'Y'
-            ]
-        ]
-    ],
-    'shoppingResponseId' => [
-        'owner' => 'BA',
-        'responseId' => 'SHOP123'
-    ]
 ]);
 
 $response = Verteil::flightPrice($request);
+
 ```
 
 ### Order Creation Example

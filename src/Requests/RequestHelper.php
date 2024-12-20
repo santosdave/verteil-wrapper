@@ -26,16 +26,16 @@ class RequestHelper
     protected static function transformFlightPriceParams(array $params): array
     {
         // Extract required parameters with defaults
-        $dataLists = $params['DataLists'] ?? [];
-        $query = $params['Query'] ?? [];
-        $travelers = $params['Travelers'] ?? [];
-        $shoppingResponseId = $params['ShoppingResponseID'] ?? [];
+        $dataLists = $params['dataLists'] ?? [];
+        $query = $params['query'] ?? [];
+        $travelers = $params['travelers'] ?? [];
+        $shoppingResponseId = $params['shoppingResponseID'] ?? [];
 
         // Optional parameters
-        $party = $params['Party'] ?? null;
-        $parameters = $params['Parameters'] ?? null;
-        $qualifier = $params['Qualifier'] ?? null;
-        $metadata = $params['Metadata'] ?? null;
+        $party = $params['party'] ?? null;
+        $parameters = $params['parameters'] ?? null;
+        $qualifier = $params['qualifier'] ?? null;
+        $metadata = $params['metadata'] ?? null;
 
         // Additional headers if present
         $thirdPartyId = $params['third_party_id'] ?? null;
