@@ -6,12 +6,28 @@ class FlightPrice
 {
     public static function create(array $params = []): array
     {
-        $request = [
-            'DataLists' => self::createDataLists($params['dataLists'] ?? []),
-            'Query' => self::createQuery($params['query'] ?? []),
-            'Travelers' => self::createTravelers($params['travelers'] ?? []),
-            'ShoppingResponseID' => self::createShoppingResponseId($params['shoppingResponseId'] ?? [])
-        ];
+        $request = [];
+
+        // DataLists section
+        if (!empty($params['dataLists'])) {
+            $request['DataLists'] = self::createDataLists($params['dataLists']);
+        }
+
+        // Query section
+        if (!empty($params['query'])) {
+            $request['Query'] = self::createQuery($params['query']);
+        }
+
+        // Travelers section
+        if (!empty($params['travelers'])) {
+            $request['Travelers'] = self::createTravelers($params['travelers']);
+        }
+
+
+        // Add ShoppingResponseID only if required fields are present
+        if (isset($params['shoppingResponseId']['owner']) && isset($params['shoppingResponseId']['responseId'])) {
+            $request['ShoppingResponseID'] = self::createShoppingResponseId($params['shoppingResponseId']);
+        }
 
         if (isset($params['party'])) {
             $request['Party'] = self::createParty($params['party']);
@@ -36,7 +52,7 @@ class FlightPrice
     {
         $dataLists = [];
 
-        if (isset($params['fares'])) {
+        if (!empty($params['fares'])) {
             $dataLists['FareList'] = [
                 'FareGroup' => array_map(function ($fare) {
                     return [
@@ -44,16 +60,20 @@ class FlightPrice
                         'FareBasisCode' => [
                             'Code' => $fare['code']
                         ],
-                        'refs' => $fare['refs'] ?? [],
-                        'Fare' => isset($fare['fareCode']) ? [
-                            'FareCode' => ['value' => $fare['fareCode']]
-                        ] : null
+                        'Fare' => [
+                            'FareCode' => [
+                                'Code' => $fare['fareCode']
+                            ]
+                        ],
+                        'refs' => isset($fare['refs']) ?
+                            (is_array($fare['refs']) ? $fare['refs'] : [$fare['refs']]) :
+                            []
                     ];
                 }, $params['fares'])
             ];
         }
 
-        if (isset($params['anonymousTravelers'])) {
+        if (!empty($params['anonymousTravelers'])) {
             $dataLists['AnonymousTravelerList'] = [
                 'AnonymousTraveler' => array_map(function ($traveler) {
                     $data = [
@@ -62,7 +82,10 @@ class FlightPrice
                     ];
 
                     if (isset($traveler['age'])) {
-                        $data['Age'] = self::createAge($traveler['age']);
+                        $data['Age'] = [
+                            'Value' => ['value' => $traveler['age']['value']],
+                            'BirthDate' => ['value' => $traveler['age']['birthDate']]
+                        ];
                     }
 
                     return $data;
@@ -180,7 +203,9 @@ class FlightPrice
                     ];
 
                     if (isset($offer['refs'])) {
-                        $data['refs'] = $offer['refs'];
+                        $data['refs'] = array_map(function ($ref) {
+                            return ['Ref' => $ref];
+                        }, $offer['refs']);
                     }
 
                     return $data;
@@ -246,7 +271,7 @@ class FlightPrice
                 return [
                     'AnonymousTraveler' => [[
                         'PTC' => ['value' => $traveler['passengerType']],
-                        'Age' => isset($traveler['age']) ? self::createAge($traveler['age']) : null
+                        // 'Age' => isset($traveler['age']) ? self::createAge($traveler['age']) : null
                     ]]
                 ];
             }, $params)
@@ -340,40 +365,36 @@ class FlightPrice
         return $qualifier;
     }
 
-    protected static function createMetadata(array $params): array
+    protected static function createMetadata(array $metadata): array
     {
         return [
             'Other' => [
                 'OtherMetadata' => array_map(function ($meta) {
-                    $data = [];
+                    $metadataItem = [];
 
-                    if (isset($meta['language'])) {
-                        $data['LanguageMetadatas'] = [
-                            'LanguageMetadata' => [[
-                                'Code_ISO' => $meta['language']['code'],
-                                'MetadataKey' => $meta['language']['key'],
-                                'Application' => $meta['language']['application']
-                            ]]
-                        ];
-                    }
-
-                    if (isset($meta['price'])) {
-                        $data['PriceMetadatas'] = [
-                            'PriceMetadata' => [[
-                                'AugmentationPoint' => [
-                                    'AugPoint' => [[
-                                        'any' => [
-                                            '@type' => $meta['price']['type']
+                    if (isset($meta['priceMetadata'])) {
+                        $metadataItem['PriceMetadatas'] = [
+                            'PriceMetadata' => array_map(function ($price) {
+                                return [
+                                    'MetadataKey' => $price['key'],
+                                    'AugmentationPoint' => [
+                                        'AugPoint' => [
+                                            [
+                                                'any' => array_filter([
+                                                    '@type' => $price['type'] ?? null,
+                                                    'type' => $price['javaType'] ?? null,
+                                                    'value' => $price['value']
+                                                ])
+                                            ]
                                         ]
-                                    ]]
-                                ],
-                                'MetadataKey' => $meta['price']['key']
-                            ]]
+                                    ]
+                                ];
+                            }, $meta['priceMetadata'])
                         ];
                     }
 
-                    return $data;
-                }, $params)
+                    return $metadataItem;
+                }, $metadata)
             ]
         ];
     }

@@ -260,7 +260,6 @@ class VerteilService
                 $this->setAuthorizationHeader();
 
                 $requestClass = "Santosdave\\VerteilWrapper\\Requests\\" . ucfirst($endpoint) . "Request";
-                $request = new $requestClass($sanitizedParams);
 
                 $constructorArgs = RequestHelper::transformParameters($endpoint, $sanitizedParams);
                 $request = new $requestClass(...$constructorArgs);

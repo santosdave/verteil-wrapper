@@ -2,6 +2,7 @@
 
 namespace Santosdave\VerteilWrapper\Requests;
 
+use Illuminate\Support\Facades\Config;
 use InvalidArgumentException;
 use Santosdave\VerteilWrapper\DataTypes\FlightPrice;
 
@@ -17,6 +18,10 @@ class FlightPriceRequest extends BaseRequest
     protected ?array $qualifier;
     protected ?array $metadata;
 
+    protected ?string $thirdPartyId;
+    protected ?string $officeId;
+
+
     public function __construct(
         array $dataLists,
         array $query,
@@ -29,10 +34,7 @@ class FlightPriceRequest extends BaseRequest
         ?string $thirdPartyId = null,
         ?string $officeId = null
     ) {
-        parent::__construct([
-            'third_party_id' => $thirdPartyId,
-            'office_id' => $officeId
-        ]);
+        parent::__construct([]);
 
         $this->dataLists = $dataLists;
         $this->query = $query;
@@ -42,6 +44,12 @@ class FlightPriceRequest extends BaseRequest
         $this->parameters = $parameters;
         $this->qualifier = $qualifier;
         $this->metadata = $metadata;
+
+        // Set thirdPartyId from param or fallback to shoppingResponseId owner
+        $this->thirdPartyId = $thirdPartyId ?? $shoppingResponseId['owner'] ?? null;
+
+        // Get officeId from config
+        $this->officeId = Config::get('verteil.office_id');
     }
 
     public function getEndpoint(): string
@@ -53,8 +61,8 @@ class FlightPriceRequest extends BaseRequest
     {
         return array_filter([
             'service' => 'FlightPrice',
-            'ThirdpartyId' => $this->data['third_party_id'] ?? null,
-            'OfficeId' => $this->data['office_id'] ?? null,
+            'ThirdpartyId' => $this->thirdPartyId,
+            'OfficeId' => $this->officeId
         ]);
     }
 
