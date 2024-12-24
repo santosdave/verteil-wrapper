@@ -5,6 +5,30 @@ All notable changes to `verteil-wrapper` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2024-12-24
+
+### Added
+
+- Enhanced OrderCreate metadata handling with comprehensive support for:
+  - PriceMetadatas with complex augmentation points and Java type support
+  - PaymentFormMetadatas with additional fields for warnings and restrictions
+  - CurrencyMetadatas with extended attributes including exchange rates
+  - Instruction metadata support
+- Added SecurePaymentVersion node with default PaymentTrxChannelCode in PaymentCard structure
+- Added support for complex value handling in metadata augmentation points
+
+### Changed
+
+- Updated metadata structures to match FlightPrice implementation while adding OrderCreate-specific features
+- Improved payment card handling with additional security nodes
+- Enhanced documentation with detailed examples for metadata usage
+
+### Fixed
+
+- Corrected metadata structure formatting for all types
+- Fixed handling of complex augmentation point values
+- Improved null value handling in metadata structure
+
 ## [2.0.3] - 2024-12-20
 
 ### Added

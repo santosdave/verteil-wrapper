@@ -284,7 +284,7 @@ $response = Verteil::flightPrice($request);
 
 ### Order Creation Example
 
-```php
+````php
 use Santosdave\VerteilWrapper\DataTypes\OrderCreate;
 use Santosdave\VerteilWrapper\DataTypes\VerteilRequestBuilder as Builder;
 
@@ -339,6 +339,175 @@ $request = OrderCreate::create([
 ]);
 
 $response = Verteil::createOrder($request);
+
+
+
+
+# Order Creation with Enhanced Metadata
+
+When creating orders with complex metadata requirements, you can use the enhanced metadata structure:
+
+```php
+$orderCreateParams = [
+    'query' => [
+        // ... order details ...
+    ],
+    'metadata' => [
+        'other' => [
+            [
+                // Price metadata with augmentation points
+                'price' => [
+                    [
+                        'key' => 'VDC-AIRLINE-SRID',
+                        'augmentationPoints' => [
+                            [
+                                'javaType' => 'java.util.HashMap',
+                                'value' => [
+                                    'metavalue1' => 'value1',
+                                    'metavalue2' => 'value2'
+                                ],
+                                'key' => 'someKey'
+                            ]
+                        ],
+                        'offerItemRefs' => ['OI1', 'OI2'],
+                        'description' => 'Price metadata description'
+                    ]
+                ],
+                // Payment form metadata
+                'paymentForm' => [
+                    [
+                        'key' => 'PAYMENT_FORM1',
+                        'text' => 'Credit Card Payment',
+                        'description' => 'Payment form for credit card transactions',
+                        'warningText' => 'Please ensure card details are correct',
+                        'restrictionText' => 'Minimum amount: 10 INR'
+                    ]
+                ],
+                // Currency metadata with extended attributes
+                'currency' => [
+                    [
+                        'key' => 'INR',
+                        'decimals' => 2,
+                        'roundingPrecision' => 0.01,
+                        'exchangeRate' => [
+                            'rate' => 1.0,
+                            'baseCurrency' => 'INR',
+                            'targetCurrency' => 'EUR'
+                        ],
+                        'displayFormat' => '#,##0.00',
+                        'allowedPaymentCurrencies' => ['INR', 'EUR', 'GBP']
+                    ]
+                ]
+            ]
+        ]
+    ],
+    'payments' => [
+        [
+            'amount' => 580.00,
+            'currency' => 'INR',
+            'card' => [
+                'number' => '4111111111111111',
+                'expiryDate' => '1225',
+                'cvv' => '123',
+                'brand' => 'VI',
+                'holderName' => 'John Doe',
+                // SecurePaymentVersion is automatically added
+                'billingAddress' => [
+                    'street' => '123 Main St',
+                    'postalCode' => '12345',
+                    'city' => 'London',
+                    'countryCode' => 'GB'
+                ]
+            ]
+        ]
+    ]
+];
+
+try {
+    $response = $verteilService->createOrder($orderCreateParams);
+
+    if ($response) {
+        echo "Order created successfully!\n";
+        echo "Order ID: " . $response->getOrderId() . "\n";
+    }
+} catch (\Santosdave\VerteilWrapper\Exceptions\VerteilApiException $e) {
+    echo "Error creating order: " . $e->getMessage() . "\n";
+}
+````
+
+## Metadata Types
+
+### Price Metadata
+
+Used for price-related information and rules:
+
+```php
+'price' => [
+    [
+        'key' => 'VDC-AIRLINE-SRID',
+        'augmentationPoints' => [
+            [
+                'javaType' => 'java.util.HashMap',
+                'value' => ['key' => 'value'],
+                'key' => 'someKey'
+            ]
+        ],
+        'offerItemRefs' => ['OI1'],
+        'description' => 'Description'
+    ]
+]
+```
+
+### Payment Form Metadata
+
+Defines payment form characteristics:
+
+```php
+'paymentForm' => [
+    [
+        'key' => 'PAYMENT_FORM1',
+        'text' => 'Credit Card Payment',
+        'description' => 'Description',
+        'warningText' => 'Warning message',
+        'restrictionText' => 'Restrictions'
+    ]
+]
+```
+
+### Currency Metadata
+
+Specifies currency handling rules:
+
+```php
+'currency' => [
+    [
+        'key' => 'INR',
+        'decimals' => 2,
+        'roundingPrecision' => 0.01,
+        'exchangeRate' => [
+            'rate' => 1.0,
+            'baseCurrency' => 'INR',
+            'targetCurrency' => 'EUR'
+        ],
+        'displayFormat' => '#,##0.00',
+        'allowedPaymentCurrencies' => ['INR', 'EUR']
+    ]
+]
+```
+
+## Payment Card Security
+
+The package automatically adds required security nodes:
+
+```php
+'card' => [
+    // ... your card details ...
+    // Automatically added:
+    'SecurePaymentVersion' => [
+        'PaymentTrxChannelCode' => 'MO'
+    ]
+]
+
 ```
 
 ### Order Retrieval and Cancellation
@@ -367,7 +536,7 @@ $cancelRequest = OrderCancel::create([
     ],
     'expectedRefundAmount' => [
         'amount' => 1200.00,
-        'currency' => 'USD'
+        'currency' => 'INR'
     ]
 ]);
 
@@ -472,7 +641,7 @@ $orderChangeParams = [
     'payments' => [
         [
             'amount' => 100.00,
-            'currency' => 'USD',
+            'currency' => 'INR',
             'card' => [
                 'number' => '4111111111111111',
                 'securityCode' => '123',
@@ -547,7 +716,7 @@ $flight = Builder::createFlightType([
 $price = Builder::createPriceType([
     'baseAmount' => 1000.00,
     'taxAmount' => 200.00,
-    'currency' => 'USD'
+    'currency' => 'INR'
 ]);
 ```
 
@@ -689,7 +858,7 @@ $notificationData = OrderChangeNotif::create([
             'compensation' => [
                 'type' => 'VOUCHER',
                 'amount' => 15.00,
-                'currency' => 'USD'
+                'currency' => 'INR'
             ]
         ]
     ],
@@ -719,7 +888,7 @@ $notificationData = OrderChangeNotif::create([
             ],
             'pricing' => [
                 'difference' => 0,
-                'currency' => 'USD'
+                'currency' => 'INR'
             ]
         ]
     ]

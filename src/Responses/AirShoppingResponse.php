@@ -1093,7 +1093,7 @@ class AirShoppingResponse extends BaseResponse
     protected function formatPrice(array $price): array
     {
         if (isset($price['SimpleCurrencyPrice'])) {
-            $currency = $price['SimpleCurrencyPrice']['Code'] ?? 'USD';
+            $currency = $price['SimpleCurrencyPrice']['Code'] ?? 'INR';
             return [
                 'amount' => $this->formatAmount((float)($price['SimpleCurrencyPrice']['value'] ?? 0), $currency),
                 'currency' => $currency

@@ -99,7 +99,7 @@ class VerteilRequestBuilder
         return [
             'baseAmount' => $params['baseAmount'] ?? 0.0,
             'totalTax' => $params['taxAmount'] ?? 0.0,
-            'currency' => $params['currency'] ?? 'USD'
+            'currency' => $params['currency'] ?? 'INR'
         ];
     }
 }
