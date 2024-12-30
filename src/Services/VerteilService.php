@@ -127,10 +127,11 @@ class VerteilService
     }
 
     // Flight Price Methods
-    public function flightPrice(array $params): FlightPriceResponse
+    public function flightPrice(array $params): array
     {
         $response = $this->makeRequest('flightPrice', $params);
-        return new FlightPriceResponse($response);
+        $flightPriceResponse = new FlightPriceResponse($response);
+        return $flightPriceResponse->toArray();
     }
 
     // Order Creation Methods
