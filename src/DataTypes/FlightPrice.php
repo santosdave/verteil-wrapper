@@ -55,20 +55,30 @@ class FlightPrice
         if (!empty($params['fares'])) {
             $dataLists['FareList'] = [
                 'FareGroup' => array_map(function ($fare) {
-                    return [
+                    $fareGroup = [
                         'ListKey' => $fare['listKey'],
                         'FareBasisCode' => [
                             'Code' => $fare['code']
                         ],
-                        'Fare' => [
-                            'FareCode' => [
-                                'Code' => $fare['fareCode']
-                            ]
-                        ],
-                        'refs' => isset($fare['refs']) ?
-                            (is_array($fare['refs']) ? $fare['refs'] : [$fare['refs']]) :
-                            []
+                        // 'Fare' => [
+                        //     'FareCode' => [
+                        //         'Code' => $fare['fareCode']
+                        //     ],
+                        //     'FareDetail' => [
+                        //         'Remarks' => [
+                        //             'Remark' => [
+                        //                 ['value' => 'PVT']
+                        //             ]
+                        //         ]
+                        //     ]
+                        // ],
                     ];
+
+                    if (isset($fare['refs'])) {
+                        $fareGroup['refs'] = is_array($fare['refs']) ? $fare['refs'] : [$fare['refs']];
+                    }
+
+                    return $fareGroup;
                 }, $params['fares'])
             ];
         }
@@ -178,9 +188,9 @@ class FlightPrice
                                     $data['refs'] = $item['refs'];
                                 }
 
-                                if (isset($item['quantity'])) {
-                                    $data['Quantity'] = $item['quantity'];
-                                }
+                                // if (isset($item['quantity'])) {
+                                //     $data['Quantity'] = $item['quantity'];
+                                // }
 
                                 if (isset($item['selectedSeats'])) {
                                     $data['SelectedSeat'] = array_map(function ($seat) {
@@ -356,7 +366,7 @@ class FlightPrice
 
         if (isset($params['paymentCard'])) {
             $qualifier['PaymentCardQualifier'] = array_filter([
-                'cardProductTypeCode' => $params['paymentCard']['productType'] ?? null,
+                'cardProductTypeCode' => $params['paymentCard']['productType'] ?? 'P',
                 'cardBrandCode' => $params['paymentCard']['brandCode'],
                 'cardNumber' => $params['paymentCard']['number']
             ]);

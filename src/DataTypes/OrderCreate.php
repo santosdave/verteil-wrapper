@@ -6,13 +6,31 @@ class OrderCreate
 {
     public static function create(array $params = []): array
     {
-        return [
-            'Query' => self::createQuery($params['query'] ?? []),
-            'Party' => self::createParty($params['party'] ?? []),
-            'Payments' => self::createPayments($params['payments'] ?? []),
-            'Commission' => $params['commission'] ?? null,
-            'Metadata' => self::createMetadata($params['metadata'] ?? [])
-        ];
+        $query = self::createQuery($params['query'] ?? []);
+
+        if (!empty($params['payments'])) {
+            $query['Payments'] = self::createPayments($params['payments']);
+        }
+
+        if (!empty($params['commission'])) {
+            $query['Commission'] = $params['commission'];
+        }
+
+        if (!empty($params['metadata'])) {
+            $query['Metadata'] = self::createMetadata($params['metadata']);
+        }
+
+        $result = ['Query' => $query];
+
+        // Only add Party if it has values
+        if (!empty($params['party'])) {
+            $party = self::createParty($params['party']);
+            if (!empty($party)) {
+                $result['Party'] = $party;
+            }
+        }
+
+        return $result;
     }
 
     protected static function createQuery(array $params): array
@@ -26,62 +44,75 @@ class OrderCreate
 
     protected static function createOrderItems(array $params): array
     {
-        return [
-            'ShoppingResponse' => [
-                'Owner' => $params['owner'] ?? '',
+        $items = [];
+
+        if (!empty($params['shoppingResponse'])) {
+            $items['ShoppingResponse'] = array_filter([
+                'Owner' => $params['shoppingResponse']['owner'] ?? '',
                 'ResponseID' => [
-                    'value' => $params['responseId'] ?? ''
+                    'value' => $params['shoppingResponse']['responseId'] ?? ''
                 ],
                 'Offers' => [
                     'Offer' => array_map(function ($offer) {
-                        return [
-                            'OfferID' => [
+                        return array_filter([
+                            'OfferID' => array_filter([
                                 'Owner' => $offer['owner'] ?? '',
                                 'Channel' => $offer['channel'] ?? 'NDC',
                                 'ObjectKey' => $offer['objectKey'] ?? '',
                                 'value' => $offer['offerId'] ?? ''
-                            ],
+                            ]),
                             'OfferItems' => [
                                 'OfferItem' => array_map(function ($item) {
-                                    return [
-                                        'OfferItemID' => [
+                                    return array_filter([
+                                        'OfferItemID' => array_filter([
                                             'Owner' => $item['owner'] ?? '',
                                             'value' => $item['offerId'] ?? ''
-                                        ]
-                                    ];
+                                        ])
+                                    ]);
                                 }, $offer['offerItems'] ?? [])
                             ]
-                        ];
-                    }, $params['offers'] ?? [])
+                        ]);
+                    }, $params['shoppingResponse']['offers']['Offer'] ?? [])
                 ]
-            ],
-            'OfferItem' => array_map(function ($item) {
-                return [
-                    'OfferItemID' => [
+            ]);
+        }
+
+        if (!empty($params['offerItem'])) {
+            $items['OfferItem'] = array_map(function ($item, $index) use ($params) {
+                $isFirstPassenger = $index === 0;
+
+                return array_filter([
+                    'OfferItemID' => array_filter([
                         'Owner' => $item['owner'] ?? '',
                         'value' => $item['value'] ?? '',
-                        'refs' => $item['refs'] ?? [],
                         'Channel' => $item['channel'] ?? 'NDC'
-                    ],
-                    'OfferItemType' => self::createOfferItemType($item)
-                ];
-            }, $params['offerItems'] ?? [])
-        ];
+                    ]),
+                    'OfferItemType' => self::createOfferItemType($item, $isFirstPassenger)
+                ]);
+            }, $params['offerItem'], array_keys($params['offerItem']));
+        }
+
+        return $items;
     }
 
-    protected static function createOfferItemType(array $item): array
+    protected static function createOfferItemType(array $item, bool $isFirstPassenger): array
     {
         $offerItemType = [];
 
         // Handle DetailedFlightItem
         if (isset($item['detailedFlightItem'])) {
-            $offerItemType['DetailedFlightItem'] = array_map(function ($flight) {
-                return [
+            $offerItemType['DetailedFlightItem'] = array_map(function ($flight) use ($isFirstPassenger) {
+                $data = array_filter([
                     'Price' => self::createPrice($flight['price'] ?? []),
-                    'OriginDestination' => self::createOriginDestination($flight['originDestination'] ?? []),
-                    'refs' => $flight['refs'] ?? [],
-                    'FareDetail' => self::createFareDetail($flight['fareDetail'] ?? [])
-                ];
+                    'OriginDestination' => self::createOriginDestination($flight['originDestination'] ?? [], $isFirstPassenger),
+                    // 'FareDetail' => self::createFareDetail($flight['fareDetail'] ?? [])
+                ]);
+
+                if (!empty($flight['refs'])) {
+                    $data['refs'] = $flight['refs'];
+                }
+
+                return $data;
             }, $item['detailedFlightItem']);
         }
 
@@ -133,64 +164,92 @@ class OrderCreate
 
     protected static function createPrice(array $price): array
     {
-        return [
-            'BaseAmount' => [
+        return array_filter([
+            'BaseAmount' => array_filter([
                 'value' => $price['baseAmount'] ?? 0,
                 'Code' => $price['currency'] ?? 'INR'
-            ],
-            'Taxes' => [
-                'Total' => [
+            ]),
+            'Taxes' => array_filter([
+                'Total' => array_filter([
                     'value' => $price['taxAmount'] ?? 0,
                     'Code' => $price['currency'] ?? 'INR'
-                ]
-            ]
-        ];
+                ])
+            ])
+        ]);
     }
 
-    protected static function createOriginDestination(array $ods): array
+    protected static function createOriginDestination(array $ods, bool $isFirstPassenger): array
     {
-        return array_map(function ($od) {
-            return [
-                'Flight' => array_map(function ($flight) {
-                    return [
-                        'SegmentKey' => $flight['segmentKey'] ?? '',
-                        'Departure' => [
+        return array_map(function ($od) use ($isFirstPassenger) {
+
+            $odData = [
+                'Flight' => array_map(function ($flight) use ($isFirstPassenger) {
+                    $flightData = array_filter([
+                        'Departure' => array_filter([
                             'AirportCode' => ['value' => $flight['departure']['airport'] ?? ''],
                             'Date' => $flight['departure']['date'] ?? '',
                             'Time' => $flight['departure']['time'] ?? null,
                             'Terminal' => isset($flight['departure']['terminal']) ? [
                                 'Name' => $flight['departure']['terminal']
                             ] : null
-                        ],
-                        'Arrival' => [
+                        ]),
+                        'Arrival' => array_filter([
                             'AirportCode' => ['value' => $flight['arrival']['airport'] ?? ''],
                             'Date' => $flight['arrival']['date'] ?? null,
                             'Time' => $flight['arrival']['time'] ?? null,
                             'Terminal' => isset($flight['arrival']['terminal']) ? [
                                 'Name' => $flight['arrival']['terminal']
                             ] : null
-                        ],
-                        'MarketingCarrier' => [
+                        ]),
+                        'MarketingCarrier' => array_filter([
                             'AirlineID' => ['value' => $flight['airline'] ?? ''],
                             'FlightNumber' => ['value' => $flight['flightNumber'] ?? '']
-                        ],
-                        'OperatingCarrier' => isset($flight['operatingCarrier']) ? [
+                        ])
+                    ]);
+
+                    // Only include SegmentKey for first passenger
+                    if ($isFirstPassenger && isset($flight['segmentKey'])) {
+                        $flightData['SegmentKey'] = $flight['segmentKey'];
+                    }
+
+                    // Only include OperatingCarrier if it has values
+                    if (!empty($flight['operatingCarrier'])) {
+                        $operatingCarrier = array_filter([
                             'AirlineID' => ['value' => $flight['operatingCarrier']['airline'] ?? ''],
                             'FlightNumber' => ['value' => $flight['operatingCarrier']['flightNumber'] ?? '']
-                        ] : null,
-                        'Equipment' => isset($flight['aircraft']) ? [
-                            'AircraftCode' => ['value' => $flight['aircraft']]
-                        ] : null,
-                        'ClassOfService' => isset($flight['classOfService']) ? [
-                            'Code' => ['value' => $flight['classOfService']],
-                            'MarketingName' => isset($flight['marketingName']) ? [
+                        ]);
+                        if (!empty($operatingCarrier)) {
+                            $flightData['OperatingCarrier'] = $operatingCarrier;
+                        }
+                    }
+
+                    // Add ClassOfService without MarketingName if no marketing name data
+                    if (isset($flight['classOfService'])) {
+                        $classOfService = ['Code' => ['value' => $flight['classOfService']]];
+                        if (!empty($flight['marketingName'])) {
+                            $classOfService['MarketingName'] = array_filter([
                                 'value' => $flight['marketingName']['value'],
                                 'CabinDesignator' => $flight['marketingName']['cabinDesignator'] ?? null
-                            ] : null
-                        ] : null
-                    ];
+                            ]);
+                        }
+
+                        if (!empty($flight['classOfServiceRefs'])) {
+                            $classOfService['refs'] = $flight['classOfServiceRefs'];
+                        }
+
+                        $flightData['ClassOfService'] = array_filter($classOfService);
+                    }
+
+                    return array_filter($flightData);
                 }, $od['flights'] ?? [])
             ];
+
+            // Add OriginDestinationKey only for first passenger
+            if ($isFirstPassenger && isset($od['originDestinationKey'])) {
+                $odData['OriginDestinationKey'] = $od['originDestinationKey'];
+            }
+
+            return $odData;
         }, $ods);
     }
 
@@ -200,20 +259,31 @@ class OrderCreate
             return [];
         }
 
-        return [
-            'FareComponent' => [
-                'refs' => $fareDetail['refs'] ?? [],
-                'FareBasis' => [
-                    'FareBasisCode' => [
-                        'Code' => $fareDetail['fareBasisCode'] ?? ''
-                    ],
-                    'RBD' => $fareDetail['rbd'] ?? null
+        $fareComponent = array_filter([
+            'FareBasis' => array_filter([
+                'FareBasisCode' => [
+                    'Code' => $fareDetail['fareBasisCode'] ?? ''
                 ],
-                'FareRules' => isset($fareDetail['fareRules']) ? [
-                    'Penalty' => $fareDetail['fareRules']['penalty'] ?? null
-                ] : null
-            ]
-        ];
+                'RBD' => $fareDetail['rbd'] ?? null
+            ])
+        ]);
+
+        // Only include refs if they exist
+        if (!empty($fareDetail['refs'])) {
+            $fareComponent['refs'] = $fareDetail['refs'];
+        }
+
+        // Only include FareRules if they contain data
+        if (!empty($fareDetail['fareRules'])) {
+            $fareRules = array_filter([
+                'Penalty' => $fareDetail['fareRules']['penalty'] ?? null
+            ]);
+            if (!empty($fareRules)) {
+                $fareComponent['FareRules'] = $fareRules;
+            }
+        }
+
+        return ['FareComponent' => array_filter($fareComponent)];
     }
 
     protected static function createSeatLocation(array $location): array
@@ -246,26 +316,38 @@ class OrderCreate
         $dataLists = [];
 
         // Create FareList
-        if (isset($params['fares'])) {
+
+        if (!empty($params['fares'])) {
             $dataLists['FareList'] = [
                 'FareGroup' => array_map(function ($fare) {
-                    return [
-                        'ListKey' => $fare['listKey'] ?? '',
+                    $fareGroup = [
+                        'ListKey' => $fare['listKey'],
                         'FareBasisCode' => [
-                            'Code' => $fare['code'] ?? ''
+                            'Code' => $fare['code']
                         ],
-                        'refs' => isset($fare['refs']) ?
-                            (is_array($fare['refs']) ? $fare['refs'] : [$fare['refs']]) :
-                            [],
-                        'Fare' => isset($fare['fareCode']) ? [
-                            'FareCode' => [
-                                'Code' => $fare['fareCode']
-                            ]
-                        ] : null
+                        // 'Fare' => isset($fare['fareCode']) ? [
+                        //     'FareCode' => [
+                        //         'Code' => $fare['fareCode']
+                        //     ],
+                        //     'FareDetail' => [
+                        //         'Remarks' => [
+                        //             'Remark' => [
+                        //                 ['value' => 'PUBL']
+                        //             ]
+                        //         ]
+                        //     ]
+                        // ] : null
                     ];
+
+                    if (isset($fare['refs'])) {
+                        $fareGroup['refs'] = is_array($fare['refs']) ? $fare['refs'] : [$fare['refs']];
+                    }
+
+                    return $fareGroup;
                 }, $params['fares'])
             ];
         }
+
 
         // Create ServiceList
         if (isset($params['services'])) {
@@ -309,14 +391,9 @@ class OrderCreate
     {
         return [
             'Passenger' => array_map(function ($passenger) {
+                // Add required information
                 $passengerData = [
                     'ObjectKey' => $passenger['objectKey'] ?? '',
-                    'PTC' => [
-                        'value' => $passenger['passengerType'] ?? ''
-                    ],
-                    'Gender' => [
-                        'value' => $passenger['gender'] ?? ''
-                    ],
                     'Name' => [
                         'Given' => array_map(function ($given) {
                             return ['value' => $given];
@@ -327,6 +404,32 @@ class OrderCreate
                         'Title' => $passenger['name']['title'] ?? null
                     ]
                 ];
+
+                // Add passenger type information
+                if (isset($passenger['passengerType'])) {
+                    $passengerData['PTC'] = [
+                        'value' => $passenger['passengerType'] ?? ''
+                    ];
+                }
+                // Add gender information
+                if (isset($passenger['gender'])) {
+                    $passengerData['Gender'] = [
+                        'value' => $passenger['gender'] ?? ''
+                    ];
+                }
+                // Add age information
+                if (isset($passenger['birthDate'])) {
+                    $passengerData['Age'] = [
+                        'BirthDate' => [
+                            'value' => $passenger['birthDate'] ?? ''
+                        ],
+                    ];
+                }
+
+                // Add passenger association for infant  information
+                if (isset($passenger['passengerAssociation'])) {
+                    $passengerData['PassengerAssociation'] =  $passenger['passengerAssociation'];
+                }
 
                 // Add contact information
                 if (isset($passenger['contacts'])) {
@@ -440,7 +543,7 @@ class OrderCreate
                 ];
 
                 // Add payment surcharge if present
-                if (isset($payment['surcharge'])) {
+                if (isset($payment['surcharge']) && $payment['surcharge']['amount'] > 0) {
                     $paymentData['Surcharge'] = [
                         'Code' => $payment['surcharge']['currency'] ?? 'INR',
                         'value' => $payment['surcharge']['amount'] ?? 0
@@ -457,67 +560,75 @@ class OrderCreate
 
     protected static function createPaymentMethod(array $payment): array
     {
+        $method = [];
+
         if (isset($payment['card'])) {
-            return [
-                'PaymentCard' => array_filter([
-                    'CardNumber' => [
-                        'value' => $payment['card']['number'] ?? ''
-                    ],
-                    'SeriesCode' => isset($payment['card']['cvv']) ? [
-                        'value' => $payment['card']['cvv']
-                    ] : null,
-                    'CardType' => 'Credit',
-                    'CardCode' => $payment['card']['brand'] ?? 'VI',
-                    'EffectiveExpireDate' => [
-                        'Expiration' => $payment['card']['expiryDate'] ?? ''
-                    ],
-                    'CardHolderName' => isset($payment['card']['holderName']) ? [
-                        'value' => $payment['card']['holderName'],
-                        'refs' => $payment['card']['holderRefs'] ?? []
-                    ] : null,
-                    'CardHolderBillingAddress' => isset($payment['card']['billingAddress']) ? [
-                        'Street' => $payment['card']['billingAddress']['street'] ?? '',
-                        'PostalCode' => $payment['card']['billingAddress']['postalCode'] ?? '',
-                        'CityName' => $payment['card']['billingAddress']['city'] ?? '',
-                        'CountryCode' => [
-                            'value' => $payment['card']['billingAddress']['countryCode'] ?? ''
-                        ],
-                        'CountrySubDivisionCode' => $payment['card']['billingAddress']['stateCode'] ?? null,
-                        'BuildingRoom' => $payment['card']['billingAddress']['buildingRoom'] ?? null
-                    ] : null,
-                    'ProductTypeCode' => $payment['card']['productType'] ?? 'P',
-                    'SecurePaymentVersion' => [
-                        'PaymentTrxChannelCode' => 'MO'
-                    ],
-                    'Amount' => [
-                        'value' => $payment['amount'] ?? 0,
-                        'Code' => $payment['currency'] ?? 'INR'
-                    ]
-                ])
+            $paymentCard = [
+                'CardNumber' => [
+                    'value' => $payment['card']['number'] ?? ''
+                ],
+                'SeriesCode' => isset($payment['card']['cvv']) ? [
+                    'value' => $payment['card']['cvv']
+                ] : null,
+                'CardType' =>  $payment['card']['type'] ?? 'Credit',
+                'CardCode' => $payment['card']['brand'] ?? 'VI',
+                'EffectiveExpireDate' => [
+                    'Expiration' => $payment['card']['expiryDate'] ?? ''
+                ],
+                'Amount' => [
+                    'value' => $payment['amount'] ?? 0,
+                    'Code' => $payment['currency'] ?? 'INR'
+                ]
             ];
+
+            // Add CardHolderName if present
+            if (isset($payment['card']['holderName'])) {
+                $paymentCard['CardHolderName'] = [
+                    'value' => $payment['card']['holderName'],
+                    'refs' => $payment['card']['holderRefs'] ?? ['Payer']
+                ];
+            }
+
+            // Modified billing address structure
+            if (isset($payment['card']['billingAddress'])) {
+                $paymentCard['CardHolderBillingAddress'] = [
+                    'Street' => [$payment['card']['billingAddress']['street']],
+                    'PostalCode' => $payment['card']['billingAddress']['postalCode'] ?? '',
+                    'CityName' => $payment['card']['billingAddress']['city'] ?? '',
+                    'CountryCode' => [
+                        'value' => $payment['card']['billingAddress']['countryCode'] ?? ''
+                    ]
+                ];
+            }
+
+            // Keep SecurePaymentVersion
+            // $paymentCard['SecurePaymentVersion'] = [
+            //     'PaymentTrxChannelCode' => 'MO'
+            // ];
+
+            $method['PaymentCard'] = $paymentCard;
         }
 
+
+
+
         if (isset($payment['cash']) && $payment['cash']) {
-            return [
-                'Cash' => [
-                    'CashInd' => true
-                ]
+            $method['Cash'] = [
+                'CashInd' => true
             ];
         }
 
         if (isset($payment['other'])) {
-            return [
-                'Other' => [
-                    'Remarks' => [
-                        'Remark' => array_map(function ($remark) {
-                            return ['value' => $remark];
-                        }, (array)$payment['other']['remarks'])
-                    ]
+            $method['Other'] = [
+                'Remarks' => [
+                    'Remark' => array_map(function ($remark) {
+                        return ['value' => $remark];
+                    }, (array)$payment['other']['remarks'])
                 ]
             ];
         }
 
-        return [];
+        return $method;
     }
 
     protected static function createMetadata(array $params): ?array
@@ -525,49 +636,27 @@ class OrderCreate
         if (empty($params)) {
             return null;
         }
-
         $metadata = [];
 
-        // Add passenger metadata if present
-        if (isset($params['passengerMetadata'])) {
-            $metadata['PassengerMetadata'] = array_map(function ($meta) {
-                return [
-                    'AugmentationPoint' => [
-                        'AugPoint' => array_map(function ($point) {
-                            return [
-                                'any' => [
-                                    'VdcAugPoint' => array_map(function ($value) {
-                                        return [
-                                            'Values' => $value
-                                        ];
-                                    }, $point['values'] ?? [])
-                                ]
-                            ];
-                        }, $meta['augmentationPoints'] ?? [])
-                    ]
-                ];
-            }, $params['passengerMetadata']);
-        }
-
-        // Add other metadata if present
-        if (isset($params['other'])) {
+        // Handle Other metadata
+        if (!empty($params['other'])) {
             $metadata['Other'] = [
                 'OtherMetadata' => array_map(function ($meta) {
                     $metadataItem = [];
 
-                    // Add payment form metadata
-                    if (isset($meta['paymentFormMetadata'])) {
-                        $metadataItem['PaymentFormMetadatas'] = [
-                            'PaymentFormMetadata' => array_map(function ($payment) {
+                    // Add CurrencyMetadatas if present
+                    if (isset($meta['currencyMetadata'])) {
+                        $metadataItem['CurrencyMetadatas'] = [
+                            'CurrencyMetadata' => array_map(function ($currency) {
                                 return [
-                                    'Text' => $payment['text'] ?? '',
-                                    'MetadataKey' => $payment['key'] ?? '',
+                                    'MetadataKey' => $currency['key'],
+                                    'Decimals' => $currency['decimals']
                                 ];
-                            }, $meta['paymentFormMetadata'])
+                            }, $meta['currencyMetadata'])
                         ];
                     }
 
-                    // Add price metadata
+                    // Modified PriceMetadatas structure
                     if (isset($meta['priceMetadata'])) {
                         $metadataItem['PriceMetadatas'] = [
                             'PriceMetadata' => array_map(function ($price) {
@@ -576,11 +665,13 @@ class OrderCreate
                                     'AugmentationPoint' => [
                                         'AugPoint' => [
                                             [
-                                                'any' => array_filter([
-                                                    '@type' => $price['type'] ?? null,
-                                                    'type' => $price['javaType'] ?? null,
-                                                    'value' => $price['value']
-                                                ])
+                                                'any' => [
+                                                    'VdcAugPoint' => [
+                                                        [
+                                                            'Value' => $price['value']
+                                                        ]
+                                                    ]
+                                                ]
                                             ]
                                         ]
                                     ]
@@ -589,21 +680,29 @@ class OrderCreate
                         ];
                     }
 
-                    // Add currency metadata with enhanced attributes
-                    if (isset($meta['currencyMetadata'])) {
-                        $metadataItem['CurrencyMetadatas'] = [
-                            'CurrencyMetadata' => array_map(function ($currency) {
-                                return array_filter([
-                                    'MetadataKey' => $currency['key'] ?? null,
-                                    'Decimals' => $currency['decimals'] ?? 0,
-                                ]);
-                            }, $meta['currencyMetadata'])
-                        ];
-                    }
-
                     return $metadataItem;
                 }, $params['other'])
             ];
+        }
+
+        // Handle PassengerMetadata
+        if (!empty($params['passengerMetadata'])) {
+            $metadata['PassengerMetadata'] = array_map(function ($passenger) {
+                return [
+                    'AugmentationPoint' => [
+                        'AugPoint' => array_map(function ($point) {
+                            return [
+                                'any' => [
+                                    'VdcAugPoint' => [
+                                        'Value' => $point['value']
+                                    ]
+                                ]
+                            ];
+                        }, $passenger['augmentationPoints'] ?? [])
+                    ],
+                    'refs' => $passenger['refs'] ?? []
+                ];
+            }, $params['passengerMetadata']);
         }
 
         return $metadata;

@@ -253,10 +253,10 @@ class VerteilService
                 $sanitizedParams = $this->sanitize($params);
 
                 // Log sanitized parameters
-                $this->logger->logRequest($endpoint, [
-                    'sanitized_params' => $sanitizedParams,
-                    'stage' => 'sanitized'
-                ]);
+                // $this->logger->logRequest($endpoint, [
+                //     'sanitized_params' => $sanitizedParams,
+                //     'stage' => 'sanitized'
+                // ]);
 
                 $this->setAuthorizationHeader();
 

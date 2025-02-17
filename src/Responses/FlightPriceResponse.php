@@ -140,7 +140,8 @@ class FlightPriceResponse extends BaseResponse
                     'marketing_name' => [
                         'value' => $ref['ClassOfService']['MarketingName']['value'] ?? null,
                         'cabin_designator' => $ref['ClassOfService']['MarketingName']['CabinDesignator'] ?? null
-                    ]
+                    ],
+                    'class_of_service_refs' => $ref['ClassOfService']['refs'] ?? null,
                 ],
                 'baggage' => [
                     'carry_on_refs' => $ref['BagDetailAssociation']['CarryOnReferences'] ?? [],
