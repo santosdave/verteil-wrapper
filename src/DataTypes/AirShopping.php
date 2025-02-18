@@ -12,7 +12,8 @@ class AirShopping
             'preference' => isset($params['preference']) ? $params['preference'] : [],
             'responseParameters' => isset($params['responseParameters']) ? $params['responseParameters'] : [],
             'enableGDS' => $params['enableGDS'] ?? null,
-            'qualifier' => $params['qualifier'] ?? null
+            'qualifier' => $params['qualifier'] ?? null,
+            'thirdPartyId' => $params['third_party_id'] ?? null,
         ];
 
         return $data;

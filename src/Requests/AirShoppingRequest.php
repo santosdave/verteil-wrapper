@@ -13,7 +13,7 @@ class AirShoppingRequest extends BaseRequest
     public function __construct(array $data)
     {
         parent::__construct($data);
-        $this->thirdPartyId = Config::get('verteil.third_party_id');
+        $this->thirdPartyId = $this->data['thirdPartyId'];
         $this->officeId = Config::get('verteil.office_id');
     }
 

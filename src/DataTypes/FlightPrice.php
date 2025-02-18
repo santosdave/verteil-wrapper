@@ -74,7 +74,7 @@ class FlightPrice
                         // ],
                     ];
 
-                    if (isset($fare['refs'])) {
+                    if (isset($fare['refs']) && !empty($fare['refs'])) {
                         $fareGroup['refs'] = is_array($fare['refs']) ? $fare['refs'] : [$fare['refs']];
                     }
 

@@ -60,7 +60,7 @@ class AirShoppingResponse extends BaseResponse
             'metadata' => [
                 'shopping' => $this->getShoppingMetadata(),
                 'currency' => $this->extractCurrencyMetadata(),
-                'other' => $this->data['Metadata']['Other'] ?? []
+                'other' => isset($this->data['Metadata']) ? ($this->data['Metadata']['Other'] ?? []) : []
             ],
             'statistics' => $this->getResponseStats(),
             'warnings' => $this->getWarnings(),
@@ -173,9 +173,9 @@ class AirShoppingResponse extends BaseResponse
     public function getMetadata(): array
     {
         return [
-            'shopping' => $this->data['Metadata']['Shopping'] ?? [],
+            'shopping' => isset($this->data['Metadata']) ? ($this->data['Metadata']['Shopping'] ?? []) : [],
             'currency' => $this->extractCurrencyMetadata(),
-            'other' => $this->data['Metadata']['Other'] ?? []
+            'other' => isset($this->data['Metadata']) ? ($this->data['Metadata']['Other'] ?? []) : []
         ];
     }
 
@@ -470,6 +470,11 @@ class AirShoppingResponse extends BaseResponse
      */
     public function getShoppingMetadata(): array
     {
+
+        if (!isset($this->data['Metadata']['Shopping']['ShopMetadataGroup']['Offer'])) {
+            return [];
+        }
+
         $metadata = $this->data['Metadata']['Shopping']['ShopMetadataGroup']['Offer'] ?? [];
         return [
             'offerMetadata' => array_map(function ($meta) {
@@ -513,7 +518,7 @@ class AirShoppingResponse extends BaseResponse
      */
     protected function getResponseTimestamp(): ?string
     {
-        return $this->safeArrayAccess($this->data['Metadata'], 'Timestamp');
+        return $this->safeArrayAccess(($this->data['Metadata'] ?? []), 'Timestamp');
     }
 
     /**
@@ -1292,8 +1297,14 @@ class AirShoppingResponse extends BaseResponse
      */
     protected function extractCurrencyMetadata(): array
     {
-        $currencyMetadata = $this->data['Metadata']['Other']['OtherMetadata'] ?? [];
+
         $currencies = [];
+
+        if (!isset($this->data['Metadata']['Other']['OtherMetadata'])) {
+            return [];
+        }
+
+        $currencyMetadata = $this->data['Metadata']['Other']['OtherMetadata'] ?? [];
 
         foreach ($currencyMetadata as $metadata) {
             if (isset($metadata['CurrencyMetadatas']['CurrencyMetadata'])) {
