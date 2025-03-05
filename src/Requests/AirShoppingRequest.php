@@ -165,10 +165,18 @@ class AirShoppingRequest extends BaseRequest
                             ]
                         ];
                     }
+                    $anonymousTraveler = [
+                        'PTC' => ['value' => $traveler['passengerType']]
+                    ];
+
+                    if (isset($traveler['age'])) {
+                        $anonymousTraveler['Age'] = [
+                            'Value' => ['value' => $traveler['age']['value']]
+                        ];
+                    }
+
                     return [
-                        'AnonymousTraveler' => [[
-                            'PTC' => ['value' => $traveler['passengerType']]
-                        ]]
+                        'AnonymousTraveler' => [$anonymousTraveler]
                     ];
                 }, $this->data['travelers'])
             ],

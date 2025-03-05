@@ -160,7 +160,7 @@ class FlightPrice
                         if (isset($flight['classOfService'])) {
                             $data['ClassOfService'] = [
                                 'Code' => ['value' => $flight['classOfService']],
-                                'refs' => $flight['classOfServiceRefs'] ?? []
+                                // 'refs' => $flight['classOfServiceRefs'] ?? []
                             ];
                         }
 
