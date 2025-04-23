@@ -8,10 +8,10 @@ class VerteilCache
 {
     protected string $prefix = 'verteil_';
     protected array $cacheableEndpoints = [
-        'airShopping' => 5, // minutes
+        'airShopping' => 2, // minutes
         'seatAvailability' => 2,
         'serviceList' => 5,
-        'flightPrice' => 2
+        // 'flightPrice' => 1
     ];
 
     /**

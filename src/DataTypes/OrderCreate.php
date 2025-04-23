@@ -602,9 +602,9 @@ class OrderCreate
             }
 
             // Keep SecurePaymentVersion
-            // $paymentCard['SecurePaymentVersion'] = [
-            //     'PaymentTrxChannelCode' => 'MO'
-            // ];
+            $paymentCard['SecurePaymentVersion2'] = [
+                'PaymentTrxChannelCode' => 'MO'
+            ];
 
             $method['PaymentCard'] = $paymentCard;
         }

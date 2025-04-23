@@ -4,6 +4,8 @@ namespace Santosdave\VerteilWrapper\Requests;
 
 use InvalidArgumentException;
 
+use Illuminate\Support\Facades\Config;
+
 class OrderRetrieveRequest extends BaseRequest
 {
 
@@ -20,22 +22,17 @@ class OrderRetrieveRequest extends BaseRequest
     public array $filters;
 
     public function __construct(
-        string $owner,
-        string $value,
-        ?string $channel = null,
-        array $filters = [],
-        ?string $thirdPartyId = null,
-        ?string $officeId = null
+        array $params,
     ) {
-        parent::__construct([
-            'third_party_id' => $thirdPartyId,
-            'office_id' => $officeId
-        ]);
+        parent::__construct([]);
 
-        $this->owner = $owner;
-        $this->value = $value;
-        $this->channel = $channel;
-        $this->filters = $filters;
+        // Extract values from the nested structure
+        $orderID = $params['Query']['Filters']['OrderID'];
+
+        $this->owner = $orderID['Owner'] ?? null;
+        $this->value = $orderID['value'] ?? null;
+        $this->channel = $orderID['Channel'] ?? null;
+        $this->filters = $params['Query']['Filters'] ?? [];
     }
 
     public function getEndpoint(): string
@@ -47,8 +44,8 @@ class OrderRetrieveRequest extends BaseRequest
     {
         return [
             'service' => 'OrderRetrieve',
-            'ThirdpartyId' => $this->data['third_party_id'] ?? null,
-            'OfficeId' => $this->data['office_id'] ?? null,
+            'ThirdpartyId' => $this->owner,
+            'OfficeId' => Config::get('verteil.office_id') ?? null,
         ];
     }
 

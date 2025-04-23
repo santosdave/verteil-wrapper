@@ -138,14 +138,16 @@ class VerteilService
     public function createOrder(array $params)
     {
         $response = $this->makeRequest('orderCreate', $params);
-        return new OrderViewResponse($response);
+        $orderRetrieveResponse = new OrderViewResponse($response);
+        return $orderRetrieveResponse->toArray();
     }
 
     // Order Retrieval Methods
-    public function retrieveOrder(array $params): OrderViewResponse
+    public function retrieveOrder(array $params): array
     {
         $response = $this->makeRequest('orderRetrieve', $params);
-        return new OrderViewResponse($response);
+        $orderRetrieveResponse = new OrderViewResponse($response);
+        return $orderRetrieveResponse->toArray();
     }
 
     // Order Cancellation Methods   

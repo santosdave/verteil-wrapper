@@ -36,33 +36,49 @@ class FlightPriceResponse extends BaseResponse
 
     public function toArray(): array
     {
+        $data = $this->data ?? null;
+        if (!$data) {
+            return [];
+        }
+
+
         return [
             'success' => $this->isSuccessful(),
             'response_id' => $this->getResponseId(),
             'correlation_id' => $this->getCorrelationId(),
             'timestamp' => $this->getTimestamp(),
-            'priced_offers' => $this->getPricedOffers(),
-            'data_lists' => [
-                'flights' => $this->getFlightList(),
-                'flight_segments' => $this->getFlightSegments(),
-                'origin_destinations' => $this->getOriginDestinations(),
-                'travelers' => $this->getTravelers(),
-                'services' => $this->getServices(),
-                'baggage' => $this->getBaggageAllowance(),
-                'price_classes' => $this->getPriceClasses(),
-                'fares' => $this->getFares(),
-                'penalties' => $this->getPenalties()
-            ],
-            'metadata' => [
-                'currency' => $this->extractCurrencyMetadata(),
-                'price' => $this->extractPriceMetadata(),
-                'payment_card' => $this->extractPaymentCardMetadata()
-            ],
-            'payments' => $this->getPayments(),
+            'response' => $data,
             'warnings' => $this->getWarnings(),
             'errors' => $this->getErrors(),
             'statistics' => $this->getStatistics()
         ];
+        // return [
+        //     'success' => $this->isSuccessful(),
+        //     'response_id' => $this->getResponseId(),
+        //     'correlation_id' => $this->getCorrelationId(),
+        //     'timestamp' => $this->getTimestamp(),
+        //     'priced_offers' => $this->getPricedOffers(),
+        //     'data_lists' => [
+        //         'flights' => $this->getFlightList(),
+        //         'flight_segments' => $this->getFlightSegments(),
+        //         'origin_destinations' => $this->getOriginDestinations(),
+        //         'travelers' => $this->getTravelers(),
+        //         'services' => $this->getServices(),
+        //         'baggage' => $this->getBaggageAllowance(),
+        //         'price_classes' => $this->getPriceClasses(),
+        //         'fares' => $this->getFares(),
+        //         'penalties' => $this->getPenalties()
+        //     ],
+        //     'metadata' => [
+        //         'currency' => $this->extractCurrencyMetadata(),
+        //         'price' => $this->extractPriceMetadata(),
+        //         'payment_card' => $this->extractPaymentCardMetadata()
+        //     ],
+        //     'payments' => $this->getPayments(),
+        //     'warnings' => $this->getWarnings(),
+        //     'errors' => $this->getErrors(),
+        //     'statistics' => $this->getStatistics()
+        // ];
     }
 
     /**

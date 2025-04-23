@@ -60,18 +60,18 @@ class FlightPrice
                         'FareBasisCode' => [
                             'Code' => $fare['code']
                         ],
-                        // 'Fare' => [
-                        //     'FareCode' => [
-                        //         'Code' => $fare['fareCode']
-                        //     ],
-                        //     'FareDetail' => [
-                        //         'Remarks' => [
-                        //             'Remark' => [
-                        //                 ['value' => 'PVT']
-                        //             ]
-                        //         ]
-                        //     ]
-                        // ],
+                        'Fare' => [
+                            'FareCode' => [
+                                'Code' => $fare['fareCode']
+                            ],
+                            // 'FareDetail' => [
+                            //     'Remarks' => [
+                            //         'Remark' => [
+                            //             ['value' => 'PVT']
+                            //         ]
+                            //     ]
+                            // ]
+                        ],
                     ];
 
                     if (isset($fare['refs']) && !empty($fare['refs'])) {
@@ -160,7 +160,7 @@ class FlightPrice
                         if (isset($flight['classOfService'])) {
                             $data['ClassOfService'] = [
                                 'Code' => ['value' => $flight['classOfService']],
-                                // 'refs' => $flight['classOfServiceRefs'] ?? []
+                                'refs' => $flight['classOfServiceRefs'] ?? []
                             ];
                         }
 
