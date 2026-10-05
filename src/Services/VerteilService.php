@@ -228,6 +228,17 @@ class VerteilService
     }
 
     /**
+     * Any NDC call ("airShopping", "flightPrice", "orderCreate", "orderRetrieve",
+     * "orderCancel", ...), answering Verteil's decoded body as it came: nothing reshaped or
+     * left out. Same request building, token, rate limits, cache and retry rules as the
+     * named methods.
+     */
+    public function send(string $endpoint, array $params): array
+    {
+        return $this->makeRequest($endpoint, $params) ?? [];
+    }
+
+    /**
      * Flush the cache
      *
      * @param string|null $endpoint

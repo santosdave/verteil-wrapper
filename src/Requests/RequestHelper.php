@@ -14,12 +14,39 @@ class RequestHelper
                 return self::transformOrderCreateParams($params);
             case 'flightPrice':
                 return self::transformFlightPriceParams($params);
+            case 'orderCancel':
+                return self::transformOrderCancelParams($params);
             case 'airShopping':
                 return [$params]; // Existing behavior
                 // Add other endpoints as needed
             default:
                 return [$params];
         }
+    }
+
+    /**
+     * Parameters for OrderCancel. The OrderCancel::create() shape ({Query: {OrderID: [...]},
+     * ExpectedRefundAmount?, Metadata?, CorrelationID?}) is unpacked into the request's
+     * arguments, and the airline owning the order becomes the ThirdpartyId header unless one
+     * is given. Before, that shape was sent nested inside a second Query.OrderID and without
+     * the header, so no cancellation could succeed.
+     */
+    protected static function transformOrderCancelParams(array $params): array
+    {
+        if (!isset($params['Query']['OrderID']) || !is_array($params['Query']['OrderID'])) {
+            return [$params]; // Existing behavior
+        }
+
+        $orderIds = array_values($params['Query']['OrderID']);
+
+        return [
+            $orderIds,
+            $params['ExpectedRefundAmount'] ?? null,
+            $params['Metadata'] ?? null,
+            $params['CorrelationID'] ?? null,
+            $params['third_party_id'] ?? ($orderIds[0]['Owner'] ?? null),
+            $params['office_id'] ?? null,
+        ];
     }
 
     /**
