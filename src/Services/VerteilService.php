@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
 use Santosdave\VerteilWrapper\Cache\VerteilCache;
 use Santosdave\VerteilWrapper\Exceptions\VerteilApiException;
+use Santosdave\VerteilWrapper\Http\HttpClientFactory;
 use Santosdave\VerteilWrapper\Logging\VerteilLogger;
 use Santosdave\VerteilWrapper\RateLimit\RateLimiter;
 use Santosdave\VerteilWrapper\Requests\RequestHelper;
@@ -50,7 +51,7 @@ class VerteilService
 
     protected function initializeClient(): void
     {
-        $this->client = new Client([
+        $this->client = app(HttpClientFactory::class)->make([
             'base_uri' => $this->config['base_url'],
             'headers' => [
                 'Accept' => 'application/json',
@@ -104,7 +105,7 @@ class VerteilService
             $this->authenticate();
         }
 
-        $this->client = new Client([
+        $this->client = app(HttpClientFactory::class)->make([
             'base_uri' => $this->config['base_url'],
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->token,
