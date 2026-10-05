@@ -165,7 +165,9 @@ class HealthMonitor
             'hits' => $cacheStats['hits'],
             'misses' => $cacheStats['misses'],
             'size' => $this->formatBytes($cacheStats['size']),
-            'items_count' => Cache::tags(['verteil'])->count()
+            // The keys VerteilCache records as it stores (tagged caches have no count(), and
+            // file and database stores have no tags at all)
+            'items_count' => count((array) Cache::get('verteil_keys', []))
         ];
     }
 
@@ -189,7 +191,8 @@ class HealthMonitor
             'status' => 'active',
             'valid' => true,
             'expires_in' => Cache::get('verteil_token_expiry')
-                ? now()->diffInMinutes(Cache::get('verteil_token_expiry'))
+                // signed and whole on both Carbon 2 and 3
+                ? (int) now()->diffInMinutes(Cache::get('verteil_token_expiry'), false)
                 : null
         ];
     }
