@@ -24,6 +24,17 @@ class RateLimiter
     ];
 
     /**
+     * @param  string  $scope  the account the limits apply to, so one account using up its
+     *                         allowance never blocks another; empty for app-wide limits
+     */
+    public function __construct(string $scope = '')
+    {
+        if ($scope !== '') {
+            $this->prefix .= $scope . '_';
+        }
+    }
+
+    /**
      * Check if request can be executed
      */
     public function attempt(string $endpoint): bool
@@ -32,16 +43,17 @@ class RateLimiter
         $limit = $this->getLimit($endpoint);
 
         $current = Cache::get($key, 0);
-        
+
         if ($current >= $limit['requests']) {
             return false;
         }
 
         Cache::increment($key);
-        
-        // Set expiration if key is new
+
+        // A new window: set its expiry, and remember when it ends for retryAfter()
         if ($current === 0) {
             Cache::put($key, 1, now()->addSeconds($limit['duration']));
+            Cache::put($key . ':ends_at', time() + $limit['duration'], now()->addSeconds($limit['duration']));
         }
 
         return true;
@@ -61,15 +73,15 @@ class RateLimiter
 
     /**
      * Get retry after time in seconds
+     *
+     * From the end of the window recorded when it opened: Laravel's cache cannot report a
+     * key's remaining lifetime (the getTimeToLive() called here before does not exist).
      */
     public function retryAfter(string $endpoint): int
     {
-        $key = $this->getKey($endpoint);
-        
-        // Get cache metadata to determine TTL
-        $ttl = Cache::getTimeToLive($key);
-        
-        return $ttl ? (int) $ttl : 0;
+        $endsAt = Cache::get($this->getKey($endpoint) . ':ends_at');
+
+        return $endsAt ? max(0, (int) $endsAt - time()) : 0;
     }
 
     protected function getKey(string $endpoint): string
@@ -88,6 +100,7 @@ class RateLimiter
     public function clear(string $endpoint): void
     {
         Cache::forget($this->getKey($endpoint));
+        Cache::forget($this->getKey($endpoint) . ':ends_at');
     }
 
     /**

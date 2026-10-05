@@ -41,12 +41,39 @@ class VerteilService
     public function __construct(array $config)
     {
         $this->config = $config;
-        $this->tokenStorage = new SecureTokenStorage();
-        $this->cache = new VerteilCache();
-        $this->rateLimiter = new RateLimiter();
+        // Token, cached answers and rate limits belong to this account, so several accounts
+        // (agencies on one platform) never share or overwrite them.
+        $account = $this->account();
+        $this->tokenStorage = new SecureTokenStorage(55, $account);
+        $this->cache = new VerteilCache($account);
+        $this->rateLimiter = new RateLimiter($account);
         $this->retryHandler = new RetryHandler();
         $this->logger = new VerteilLogger();
         $this->initializeClient();
+    }
+
+    /**
+     * A short, stable name for the account this service works for. Holds no secret.
+     */
+    protected function account(): string
+    {
+        return substr(hash('sha256', rtrim((string) ($this->config['base_url'] ?? ''), '/') . '|' . ($this->config['username'] ?? '')), 0, 16);
+    }
+
+    /**
+     * The request's headers, with this account's office ID where the request took the
+     * application's (config('verteil.office_id')) or none. An office ID the caller set on
+     * the request itself is kept.
+     */
+    protected function headersFor(object $request): array
+    {
+        $headers = $request->getHeaders();
+        $office = $this->config['office_id'] ?? null;
+        if (!empty($office) && (empty($headers['OfficeId']) || $headers['OfficeId'] === config('verteil.office_id'))) {
+            $headers['OfficeId'] = $office;
+        }
+
+        return array_filter($headers);
     }
 
     protected function initializeClient(): void
@@ -222,7 +249,10 @@ class VerteilService
     }
 
     // Protected Methods
-    protected function makeRequest(string $endpoint, array $params)
+    /**
+     * @param  bool  $tokenRenewed  true on the one retry after Verteil rejected the token
+     */
+    protected function makeRequest(string $endpoint, array $params, bool $tokenRenewed = false)
     {
         try {
             // Check cache first
@@ -245,7 +275,7 @@ class VerteilService
             }
 
             // Execute request with retry logic
-            return $this->retryHandler->execute(function () use ($endpoint, $params) {
+            return $this->retryHandler->execute(function () use ($endpoint, $params, $tokenRenewed) {
                 // Log initial request parameters
                 $this->logger->logRequest($endpoint, [
                     'raw_params' => $params,
@@ -270,16 +300,17 @@ class VerteilService
 
                 // Convert request to array and log final request
                 $finalRequest = $request->toArray();
+                $headers = $this->headersFor($request);
                 $this->logger->logRequest($endpoint, [
                     'final_request' => $finalRequest,
                     'stage' => 'processed',
-                    'headers' => $request->getHeaders()
+                    'headers' => $headers
                 ]);
 
                 try {
                     $response = $this->client->post($request->getEndpoint(), [
                         'json' => $request->toArray(),
-                        'headers' => array_filter($request->getHeaders())
+                        'headers' => $headers
                     ]);
 
                     $responseData = json_decode($response->getBody(), true);
@@ -291,12 +322,14 @@ class VerteilService
 
                     return $responseData;
                 } catch (\GuzzleHttp\Exception\RequestException $e) {
-                    if ($e->hasResponse() && $e->getResponse()->getStatusCode() === 401) {
-                        // Token might be expired, clear it and retry once
+                    if ($e->hasResponse() && $e->getResponse()->getStatusCode() === 401 && !$tokenRenewed) {
+                        // Token might be expired: clear it and retry once. Only once: if
+                        // Verteil rejects a fresh token too, that is the answer (before, this
+                        // renewed the token and retried for as long as Verteil said 401).
                         $this->tokenStorage->clearToken();
                         $this->token = null;
 
-                        return $this->makeRequest($endpoint, $params);
+                        return $this->makeRequest($endpoint, $params, true);
                     }
 
                     $this->logger->logError($endpoint, $e);

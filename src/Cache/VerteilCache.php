@@ -15,6 +15,18 @@ class VerteilCache
     ];
 
     /**
+     * @param  string  $scope  the account the responses belong to: shopping answers depend on
+     *                         the account's contracts, so accounts never share them; empty
+     *                         for one app-wide cache
+     */
+    public function __construct(string $scope = '')
+    {
+        if ($scope !== '') {
+            $this->prefix .= $scope . '_';
+        }
+    }
+
+    /**
      * Get cached response if available
      */
     public function get(string $endpoint, array $params): ?array

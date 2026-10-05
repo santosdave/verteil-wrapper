@@ -10,9 +10,17 @@ class SecureTokenStorage
 
     protected int $tokenExpiry;
 
-    public function __construct(int $tokenExpiry = 55)
+    protected string $key;
+
+    /**
+     * @param  string  $scope  the account the token belongs to, so several accounts in one
+     *                         application never share or overwrite a token; empty for the
+     *                         old single, app-wide token
+     */
+    public function __construct(int $tokenExpiry = 55, string $scope = '')
     {
         $this->tokenExpiry = $tokenExpiry;
+        $this->key = 'verteil_token' . ($scope !== '' ? '_' . $scope : '');
     }
 
     /**
@@ -24,7 +32,7 @@ class SecureTokenStorage
     public function storeToken(string $token): void
     {
         $encryptedToken = $this->encrypt($token);
-        Cache::put('verteil_token', $encryptedToken, now()->addMinutes($this->tokenExpiry));
+        Cache::put($this->key, $encryptedToken, now()->addMinutes($this->tokenExpiry));
     }
 
     /**
@@ -34,7 +42,7 @@ class SecureTokenStorage
      */
     public function retrieveToken(): ?string
     {
-        $encryptedToken = Cache::get('verteil_token');
+        $encryptedToken = Cache::get($this->key);
         if (!$encryptedToken) {
             return null;
         }
@@ -49,7 +57,7 @@ class SecureTokenStorage
      */
     public function hasValidToken(): bool
     {
-        return Cache::has('verteil_token') && $this->retrieveToken() !== null;
+        return Cache::has($this->key) && $this->retrieveToken() !== null;
     }
 
     /**
@@ -59,7 +67,7 @@ class SecureTokenStorage
      */
     public function clearToken(): void
     {
-        Cache::forget('verteil_token');
+        Cache::forget($this->key);
     }
 
     /**
