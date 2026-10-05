@@ -10,6 +10,9 @@ class RetryHandler
     protected int $maxAttempts;
     protected int $delay;
     protected array $retryableStatusCodes = [408, 429, 500, 502, 503, 504];
+
+    /** Endpoints that change an order: never sent again automatically. */
+    protected array $writes = ['orderCreate', 'orderCancel', 'orderChange', 'orderChangeNotif'];
     protected array $retryableExceptions = [
         \GuzzleHttp\Exception\ConnectException::class,
         \GuzzleHttp\Exception\ServerException::class,
@@ -27,6 +30,12 @@ class RetryHandler
      */
     public function execute(callable $callback, string $context = ''): mixed
     {
+        // A write whose connection dropped or that failed may already have been applied:
+        // sending it again could create, cancel or change an order twice. Report it instead.
+        if (in_array($context, $this->writes, true)) {
+            return $callback();
+        }
+
         $attempt = 1;
         $lastException = null;
 

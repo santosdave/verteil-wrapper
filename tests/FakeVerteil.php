@@ -32,6 +32,9 @@ class FakeVerteil
         }
 
         $status = array_shift($this->statuses) ?? 200;
+        if ($status === 0) { // the connection dropped: no answer at all
+            return Create::rejectionFor(new \GuzzleHttp\Exception\ConnectException('cURL error 28: Operation timed out', $request));
+        }
 
         return Create::promiseFor($status === 200
             ? self::json(200, ['Response' => ['OrderCancel' => 'OK'], 'Success' => true])
