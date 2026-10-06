@@ -98,9 +98,9 @@ class VerteilService
                 $this->token = $this->tokenStorage->retrieveToken();
                 return $this;
             }
-            // Sanitize credentials
-            $username = $this->sanitizeString($this->config['username']);
-            $password = $this->sanitizeString($this->config['password']);
+            // Credentials exactly as configured: any change (escaping &, <, quotes) breaks login.
+            $username = (string) $this->config['username'];
+            $password = (string) $this->config['password'];
 
             $response = $this->client->post('/oauth2/token', [
                 'auth' => [$username, $password],

@@ -28,19 +28,13 @@ trait  SanitizesInput
      */
     protected function sanitizeString(string $value): string
     {
-        // Remove HTML and PHP tags
-        $value = strip_tags($value);
+        // Requests go out as JSON, which already encodes every character safely. HTML
+        // escaping (and tag stripping) here changed the data itself: a passenger called
+        // O'Brien reached the airline as "O&apos;Brien". Only control characters, which no
+        // NDC field allows, are removed, and whitespace is normalised.
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value) ?? $value;
 
-        // Convert special characters to HTML entities
-        $value = htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-        // Remove null bytes
-        $value = str_replace(chr(0), '', $value);
-
-        // Normalize whitespace
-        $value = trim(preg_replace('/\s+/', ' ', $value));
-
-        return $value;
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
     }
 
     /**
